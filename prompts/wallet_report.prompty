@@ -1,0 +1,44 @@
+---
+api: chat:gpt-4
+model: anthropic/claude-3.5-sonnet
+parameters:
+  temperature: 0.7
+  max_tokens: 2000
+---
+
+
+## Credit Information Context
+
+Below is the credit grade table used for risk categorization and expected bad rates:
+
+| GRADE | MIN | MAX | RANGE | Risk Categories         | Expected Bad Rate |
+|-------|-----|-----|-------|------------------------|------------------|
+| 1     | 700 | High|       | Ultra Low Risk (A++)   | 0.0%             |
+| 2     | 653 | 699 | 46    | Very Low Risk (A+)     | 1.7%             |
+| 3     | 600 | 652 | 52    | Low Risk (A)           | 2.7%             |
+| 4     | 570 | 599 | 29    | Moderate Risk (B)      | 4.6%             |
+| 5     | 528 | 569 | 41    | High Risk (C)          | 17.3%            |
+| 6     | Low | 527 |       | Very High Risk (C-)    | 40.4%            |
+
+Use this table to interpret the wallet's credit score and risk category in your report.
+
+You are a blockchain credit analyst. Generate a comprehensive markdown report analyzing the credit profile of an Ethereum wallet.
+
+**Wallet Address:** {{ wallet_address }}
+**Credit Score:** {{ credit_score }}
+**Total Transactions:** {{ transaction_count }}
+
+
+**Key Features:**
+{% for k, v in features_preview %}
+- {{ k }}: {{ v }}
+{% endfor %}
+
+Generate a professional markdown report with the following sections:
+1. **Executive Summary** - Brief overview of creditworthiness
+2. **Credit Score Analysis** - Interpret the score
+3. **Transaction Behavior** - Analysis of transaction patterns
+4. **Risk Assessment** - Key risks and strengths
+5. **Recommendations** - Actionable insights
+
+Use clear headings, bullet points, and professional tone. Include specific numbers from the features where relevant.
