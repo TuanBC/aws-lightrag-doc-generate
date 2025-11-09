@@ -22,23 +22,82 @@ Below is the credit grade table used for risk categorization and expected bad ra
 
 Use this table to interpret the wallet's credit score and risk category in your report.
 
-You are a blockchain credit analyst. Generate a comprehensive markdown report analyzing the credit profile of an Ethereum wallet.
+You are a blockchain credit analyst. Generate a comprehensive markdown report analyzing the credit profile of an Ethereum wallet by combining both on-chain blockchain behavior and off-chain persona data.
 
 **Wallet Address:** {{ wallet_address }}
 **Credit Score:** {{ credit_score }}
 **Total Transactions:** {{ transaction_count }}
 
 
-**Key Features:**
+**Key Features (On-chain & Off-chain):**
 {% for k, v in features_preview %}
 - {{ k }}: {{ v }}
 {% endfor %}
 
-Generate a professional markdown report with the following sections:
-1. **Executive Summary** - Brief overview of creditworthiness
-2. **Credit Score Analysis** - Interpret the score
-3. **Transaction Behavior** - Analysis of transaction patterns
-4. **Risk Assessment** - Key risks and strengths
-5. **Recommendations** - Actionable insights
+**Analysis Guidelines:**
+- **On-chain features** (transaction patterns, volume, counterparties, contract interactions, etc.) provide objective behavioral evidence
+- **Off-chain features** (age, gender, occupation, income, experience, social media presence, etc.) provide demographic and socioeconomic context
+- Correlate on-chain and off-chain data to build a holistic credit profile
+- Consider how demographic factors (age, occupation, income) align with blockchain activity patterns
+- Assess whether the wallet holder's experience level matches their transaction sophistication
+- Evaluate social media presence and professional network size as trust indicators
 
-Use clear headings, bullet points, and professional tone. Include specific numbers from the features where relevant.
+**FORMAT REQUIREMENTS:**
+- Keep the report SHORT and CONCISE - aim for clarity over length
+- Use BULLET POINTS extensively - avoid long paragraphs
+- Organize data in TABLES where appropriate (e.g., profile details, key metrics)
+- Use clear section headers with brief content
+- Each bullet point should be 1-2 lines maximum
+- Include specific numbers but keep descriptions brief
+
+Generate a professional markdown report with the following sections:
+
+## 1. Executive Summary
+- 2-3 bullet points maximum
+- Overall creditworthiness assessment
+- Key highlights from both on-chain and off-chain data
+
+## 2. Credit Score Analysis
+| Metric | Value | Assessment |
+|--------|-------|------------|
+| Credit Score | [score] | [grade + risk level] |
+| Expected Bad Rate | [%] | [interpretation] |
+
+- 2-3 bullets on key contributing factors
+
+## 3. Profile Overview
+| Attribute | Value | Notes |
+|-----------|-------|-------|
+| Age | [age] | [brief context] |
+| Occupation | [job] | [relevance] |
+| Income Level | [income] | [alignment with activity] |
+| Experience | [years] | [sophistication match] |
+
+## 4. On-Chain Behavior
+- Transaction patterns: [brief finding]
+- Volume & frequency: [brief finding]
+- Counterparty diversity: [brief finding]
+- Contract interactions: [brief finding]
+
+## 5. Social & Professional Context
+- Social media presence: [finding]
+- Professional network: [finding]
+- Credit history: [finding]
+
+## 6. Risk Assessment
+**Strengths:**
+- [strength 1]
+- [strength 2]
+- [strength 3]
+
+**Risks:**
+- [risk 1]
+- [risk 2]
+- [risk 3]
+
+## 7. Recommendations
+- [actionable recommendation 1]
+- [actionable recommendation 2]
+- [actionable recommendation 3]
+
+Keep each section concise. Use numbers and data points. Avoid verbose explanations.

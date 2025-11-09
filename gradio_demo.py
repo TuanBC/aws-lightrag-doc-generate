@@ -261,7 +261,7 @@ with gr.Blocks(
         **Two Powerful Analysis Methods:**
         
         📊 **Credit Enquiry** - Lightning-fast scoring with 50+ on-chain features  
-        📝 **AI Report** - Comprehensive analysis powered by Claude/GPT LLMs
+        📝 **AI Report** - Comprehensive analysis powered by LLM from OpenRouter/Amazon Bedrock
         
         </div>
         
@@ -358,7 +358,7 @@ with gr.Blocks(
                 
                 report_output = gr.Markdown(
                     label="Wallet Credit Report",
-                    value="Enter a wallet address and click 'Generate AI Report' to see results.\n\n*Note: Report generation may take 10-30 seconds depending on wallet complexity and LLM response time.*"
+                    value="Enter a wallet address and click 'Generate AI Report' to see results.\n\n*Note: Report generation may take 30-60 seconds depending on LLM response time.*"
                 )
     
     # Button click handlers

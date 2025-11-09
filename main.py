@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import os
+import logging
 from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
@@ -18,6 +19,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from services.etherscan_service import EtherscanService
 from services.credit_scoring_service import CreditScoringService
+from services.offchain_data_generator import OffchainDataGenerator
 import numpy as np
 def convert_numpy(obj):
     """Recursively convert numpy types to native Python types."""
@@ -36,6 +38,13 @@ def convert_numpy(obj):
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Ethereum Wallet Credit Scoring API",
@@ -57,6 +66,7 @@ openrouter_model = os.getenv("OPENROUTER_MODEL", "anthropic/claude-3.5-sonnet")
 
 etherscan_service = EtherscanService(api_key=etherscan_api_key)
 credit_scoring_service = CreditScoringService()
+offchain_generator = OffchainDataGenerator()
 
 
 # Select LLM provider: 'openrouter' or 'bedrock'
@@ -175,10 +185,19 @@ async def enquire_wallet_credit_score(
         features = convert_numpy(features)
         credit_score = float(credit_score)  # Ensure float
 
+        # Step 4: Generate off-chain persona data
+        offchain_data = offchain_generator.generate(wallet_address, features)
+        logger.info(f"Generated off-chain data for wallet: {wallet_address}")
+        for key, value in offchain_data.items():
+            logger.info(f"  {key}: {value}")
+        
+        # Combine on-chain and off-chain features
+        complete_features = {**features, **offchain_data}
+
         return CreditScoreResponse(
             wallet_address=wallet_address,
             credit_score=credit_score,
-            features=features,
+            features=complete_features,
             message="Credit score calculated successfully"
         )
         
@@ -230,19 +249,29 @@ async def generate_wallet_report(
         features = convert_numpy(features)
         credit_score = float(credit_score)
         
-        # Step 4: Prepare data for LLM
+        # Step 4: Generate off-chain persona data
+        offchain_data = offchain_generator.generate(wallet_address, features)
+        logger.info(f"Generated off-chain data for wallet: {wallet_address}")
+        for key, value in offchain_data.items():
+            logger.info(f"  {key}: {value}")
+        
+        # Step 5: Prepare data for LLM
+        # Combine on-chain and off-chain features
+        complete_features = {**features, **offchain_data}
+        
         # Prepare a preview of the first 20 features for the template
-        features_preview = list(features.items())[:20]
+        features_preview = list(complete_features.items())[:20]
         report_data = {
             "wallet_address": wallet_address,
             "credit_score": credit_score,
             "transaction_count": len(transactions),
-            "features": features,
-            "features_preview": features_preview
+            "features": complete_features,
+            "features_preview": features_preview,
+            "offchain_data": offchain_data
         }
 
 
-        # Step 5: Render prompt using Prompty template with Jinja2
+        # Step 6: Render prompt using Prompty template with Jinja2
         prompt = render_prompty_template("wallet_report.prompty", report_data)
 
         # Use LangChain's async ainvoke for FastAPI (provider-agnostic)
