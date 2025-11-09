@@ -12,7 +12,8 @@ from typing import Dict, Any, Optional
 import os
 from dotenv import load_dotenv
 
-from openai import OpenAI
+from langchain_openai import ChatOpenAI
+from langchain_aws import ChatBedrockConverse
 from jinja2 import Environment, FileSystemLoader
 
 from services.etherscan_service import EtherscanService
@@ -58,11 +59,30 @@ etherscan_service = EtherscanService(api_key=etherscan_api_key)
 credit_scoring_service = CreditScoringService()
 
 
-# Initialize OpenRouter client
-openrouter_client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=openrouter_api_key,
-)
+# Select LLM provider: 'openrouter' or 'bedrock'
+llm_provider = os.getenv("LLM_PROVIDER", "openrouter").lower()
+llm = None
+if llm_provider == "bedrock":
+    bedrock_model_id = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20240620-v1:0")
+    bedrock_region = os.getenv("BEDROCK_REGION", "us-west-2")
+    # AWS credentials are read from env vars or IAM role
+    llm = ChatBedrockConverse(
+        model_id=bedrock_model_id,
+        region_name=bedrock_region,
+        aws_session_token=os.getenv("AWS_SESSION_TOKEN"),  # Optional
+        temperature=0.7,
+        max_tokens=2000,
+    )
+elif llm_provider == "openrouter":
+    llm = ChatOpenAI(
+        model=openrouter_model,
+        api_key=openrouter_api_key,
+        base_url="https://openrouter.ai/api/v1",
+        temperature=0.7,
+        max_tokens=2000,
+    )
+else:
+    raise ValueError(f"Unsupported LLM_PROVIDER: {llm_provider}")
 
 # Initialize Jinja2 environment for Prompty templates
 prompts_dir = os.path.join(os.path.dirname(__file__), "prompts")
@@ -221,20 +241,14 @@ async def generate_wallet_report(
             "features_preview": features_preview
         }
 
+
         # Step 5: Render prompt using Prompty template with Jinja2
         prompt = render_prompty_template("wallet_report.prompty", report_data)
 
-        response = openrouter_client.chat.completions.create(
-            model=openrouter_model,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=2000
-        )
-
-        report = response.choices[0].message.content
-
+        # Use LangChain's async ainvoke for FastAPI (provider-agnostic)
+        messages = [{"role": "user", "content": prompt}]
+        response = await llm.ainvoke(messages)
+        report = response.text
         return report
         
     except HTTPException:
