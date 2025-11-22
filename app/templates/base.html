@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ page_title or "Onchain Credit Scoring" }}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" />
+    <link rel="stylesheet" href="/static/css/etherscan.css" />
+    <script src="/static/js/main.js" defer></script>
+  </head>
+  <body class="bg-scan">
+    <header class="nav-bar">
+      <div class="nav-inner">
+        <div class="brand">
+          <span class="brand-badge">Ξ</span>
+          <div>
+            <p class="brand-title">Onchain Credit</p>
+            <p class="brand-subtitle">Ethereum Wallet Scoring</p>
+          </div>
+        </div>
+        <div class="nav-links">
+          <a href="/" class="nav-link">Dashboard</a>
+          <a href="https://etherscan.io" target="_blank" rel="noreferrer" class="nav-link subtle">Etherscan</a>
+        </div>
+      </div>
+    </header>
+    <main class="content-area">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+      <p>Powered by FastAPI · Designed with an Etherscan-inspired UI</p>
+    </footer>
+  </body>
+</html>
+

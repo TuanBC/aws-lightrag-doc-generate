@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="score-header">
+  <div>
+    <p class="eyebrow">Wallet</p>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <h1 class="mono" style="margin: 0;">{{ wallet_address }}</h1>
+      <button class="copy-address" data-address="{{ wallet_address }}" title="Copy address" style="background: rgba(255,255,255,0.1); border: 1px solid var(--scan-border); color: var(--scan-text); padding: 0.5rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Copy</button>
+    </div>
+    {% if message %}
+    <p class="feedback">{{ message }}</p>
+    {% endif %}
+  </div>
+  <div class="score-pill">
+    <p class="eyebrow">Credit Score</p>
+    <p class="score-value">{{ "%.0f"|format(score) }}</p>
+  </div>
+</section>
+
+{% if report_enabled %}
+<div class="action-row">
+  <a class="btn secondary" href="/api/v1/wallets/{{ wallet_address }}/report" target="_blank" rel="noreferrer">
+    Download Markdown Report
+  </a>
+</div>
+{% endif %}
+
+<section class="grid">
+  <article class="stat-card span-2">
+    <p class="eyebrow">Summary</p>
+    <div class="summary-grid">
+      <div>
+        <p class="summary-label">Total Transactions</p>
+        <p class="summary-value">{{ features.total_transactions or 0 }}</p>
+      </div>
+      <div>
+        <p class="summary-label">Account Age (days)</p>
+        <p class="summary-value">{{ features.account_age_days or 0 }}</p>
+      </div>
+      <div>
+        <p class="summary-label">Unique Counterparties</p>
+        <p class="summary-value">{{ features.unique_counterparties or 0 }}</p>
+      </div>
+      <div>
+        <p class="summary-label">Net ETH Change</p>
+        <p class="summary-value">{{ "%.3f"|format(features.net_eth_change or 0) }}</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="stat-card">
+    <p class="eyebrow">Off-chain Persona</p>
+    <ul class="detail-list">
+      {% for key, value in offchain.items() %}
+      <li><span>{{ key.replace("_", " ")|title }}</span><strong>{{ value }}</strong></li>
+      {% endfor %}
+    </ul>
+  </article>
+</section>
+
+<section class="stat-card span-2">
+  <div class="features-header">
+    <p class="eyebrow">Feature Table</p>
+    <a href="/" class="nav-link subtle">Run another score →</a>
+  </div>
+  <table class="features-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for key, value in features.items() %}
+      <tr>
+        <td class="mono">{{ key }}</td>
+        <td>{{ value }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+
