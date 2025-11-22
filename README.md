@@ -49,7 +49,11 @@ A stateless FastAPI monolith for assessing Ethereum wallet creditworthiness usin
 
 3. **Install dependencies:**
    ```bash
-   pip install -r requirements.txt
+   # Install uv (if not already installed)
+   pip install uv
+
+   # Sync dependencies
+   uv sync
    ```
 
 4. **Run the application:**
@@ -266,6 +270,24 @@ ruff check
 
 # Formatting
 ruff format
+```
+
+### Dependency Management
+
+This project uses `uv` for fast dependency management.
+
+```bash
+# Add a new package
+uv add package_name
+
+# Add a development dependency
+uv add --dev package_name
+
+# Remove a package
+uv remove package_name
+
+# Sync environment with pyproject.toml
+uv sync
 ```
 
 ### Adding New Features
