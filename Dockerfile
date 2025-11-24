@@ -20,8 +20,8 @@ RUN uv sync
 # Copy application code
 COPY . .
 
-# Copy .env file if present
-COPY .env .env
+
+# Secrets and environment variables should be injected by AWS ECS (do not bake .env into image)
 
 # Create necessary directories
 RUN mkdir -p app/static/css app/static/js app/templates
