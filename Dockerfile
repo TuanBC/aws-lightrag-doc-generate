@@ -7,6 +7,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    make \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv using the official binary installer
