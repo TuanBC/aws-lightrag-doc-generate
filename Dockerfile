@@ -6,8 +6,11 @@ WORKDIR /app
 # Install system dependencies and uv
 RUN apt-get update && apt-get install -y \
     gcc \
-    && pip install uv \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install uv using the official binary installer
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 
 # Copy requirements first for better caching
