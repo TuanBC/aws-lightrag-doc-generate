@@ -8,12 +8,10 @@ on:
     # Allow manual triggering
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY: credit-scoring-onchain
+  AWS_REGION: ap-southeast-2
   ECS_SERVICE: credit-scoring-service
-  ECS_CLUSTER: credit-scoring-cluster
-  ECS_TASK_DEFINITION: credit-scoring-task
   CONTAINER_NAME: credit-scoring-app
+  TERRAFORM_DIR: ./aws/terraform
 
 jobs:
   build-and-push:
@@ -30,6 +28,12 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          - name: Fetch Terraform ECR output
+            id: terraform
+            working-directory: ${{ env.TERRAFORM_DIR }}
+            run: |
+              terraform init
+              echo "ecr_repository=$(terraform output -raw ecr_repository)" >> $GITHUB_OUTPUT
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -38,6 +42,7 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
+          ECR_REPOSITORY: ${{ steps.terraform.outputs.ecr_repository }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
@@ -66,6 +71,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Fetch Terraform outputs
+        id: terraform
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform init
+          echo "ecs_cluster=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_OUTPUT
+          echo "task_definition=$(terraform output -raw task_definition_arn)" >> $GITHUB_OUTPUT
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -80,7 +93,7 @@ jobs:
       - name: Download task definition
         run: |
           aws ecs describe-task-definition \
-            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --task-definition ${{ steps.terraform.outputs.task_definition }} \
             --query taskDefinition > task-definition.json
 
       - name: Fill in the new image ID in the Amazon ECS task definition
@@ -89,20 +102,21 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          image: ${{ steps.login-ecr.outputs.registry }}/credit-scoring-onchain:${{ github.sha }}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
+          cluster: ${{ steps.terraform.outputs.ecs_cluster }}
           wait-for-service-stability: true
 
       - name: Verify deployment
         run: |
           echo "Deployment completed successfully!"
           echo "Service: ${{ env.ECS_SERVICE }}"
-          echo "Cluster: ${{ env.ECS_CLUSTER }}"
-          echo "Image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+          echo "Cluster: ${{ steps.terraform.outputs.ecs_cluster }}"
+          echo "Task Definition: ${{ steps.terraform.outputs.task_definition }}"
+          echo "Image: ${{ steps.login-ecr.outputs.registry }}/credit-scoring-onchain:${{ github.sha }}"
 
