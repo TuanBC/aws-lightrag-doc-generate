@@ -54,3 +54,11 @@ Thumbs.db
 .terraform.lock.hcl
 terraform.tfvars
 *.tfvars
+crash.log
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
