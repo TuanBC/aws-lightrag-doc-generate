@@ -29,13 +29,13 @@ class Settings(BaseModel):
     openrouter_model: str = Field(
         default=os.getenv("OPENROUTER_MODEL", "anthropic/claude-3.5-sonnet")
     )
-    llm_provider: str = Field(default=os.getenv("LLM_PROVIDER", "openrouter"))
+    llm_provider: str = Field(default=os.getenv("LLM_PROVIDER", "bedrock"))
     bedrock_model_id: str = Field(
         default=os.getenv(
-            "BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20240620-v1:0"
+            "BEDROCK_MODEL_ID", "amazon.nova-pro-v1:0"
         )
     )
-    bedrock_region: str = Field(default=os.getenv("BEDROCK_REGION", "us-east-1"))
+    bedrock_region: str = Field(default=os.getenv("BEDROCK_REGION", "ap-southeast-2"))
     aws_bearer_token: Optional[str] = Field(
         default=os.getenv("AWS_BEARER_TOKEN_BEDROCK"), description="AWS bearer token"
     )
