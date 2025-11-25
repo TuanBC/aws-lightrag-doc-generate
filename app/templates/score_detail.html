@@ -1,85 +1,329 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="score-header">
-  <div>
-    <p class="eyebrow">Wallet</p>
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <h1 class="mono" style="margin: 0;">{{ wallet_address }}</h1>
-      <button class="copy-address" data-address="{{ wallet_address }}" title="Copy address" style="background: rgba(255,255,255,0.1); border: 1px solid var(--scan-border); color: var(--scan-text); padding: 0.5rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Copy</button>
-    </div>
-    {% if message %}
-    <p class="feedback">{{ message }}</p>
-    {% endif %}
+<!-- Breadcrumb -->
+<nav class="breadcrumb">
+  <div class="container">
+    <a href="/" class="breadcrumb-item">
+      <i class="fas fa-home"></i>
+      Home
+    </a>
+    <i class="fas fa-chevron-right breadcrumb-separator"></i>
+    <span class="breadcrumb-item active">Score Details</span>
   </div>
-  <div class="score-pill">
-    <p class="eyebrow">Credit Score</p>
-    <p class="score-value">{{ "%.0f"|format(score) }}</p>
+</nav>
+
+<!-- Score Header -->
+<section class="score-hero">
+  <div class="container">
+    <div class="score-hero-content">
+      <!-- Left: Wallet Info -->
+      <div class="wallet-info">
+        <div class="wallet-header">
+          <div class="wallet-icon">
+            <i class="fas fa-wallet"></i>
+          </div>
+          <div class="wallet-details">
+            <span class="wallet-label">Ethereum Address</span>
+            <div class="wallet-address-row">
+              <code class="wallet-address" id="walletAddress">{{ wallet_address }}</code>
+              <button class="copy-btn" data-copy="{{ wallet_address }}" title="Copy address">
+                <i class="fas fa-copy"></i>
+              </button>
+              <a href="https://etherscan.io/address/{{ wallet_address }}" target="_blank" class="etherscan-link" title="View on Etherscan">
+                <i class="fas fa-external-link-alt"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        {% if message %}
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i>
+          <span>{{ message }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Right: Score Display -->
+      <div class="score-display">
+        <div class="score-ring" data-score="{{ score }}">
+          <svg viewBox="0 0 200 200">
+            <circle class="score-ring-bg" cx="100" cy="100" r="90" />
+            <circle class="score-ring-progress" cx="100" cy="100" r="90" />
+          </svg>
+          <div class="score-value-wrapper">
+            <span class="score-value">{{ "%.0f"|format(score) }}</span>
+            <span class="score-max">/ 1000</span>
+          </div>
+        </div>
+        <div class="score-rating">
+          {% if score >= 800 %}
+          <span class="rating-badge rating-excellent">
+            <i class="fas fa-star"></i> Excellent
+          </span>
+          {% elif score >= 650 %}
+          <span class="rating-badge rating-good">
+            <i class="fas fa-thumbs-up"></i> Good
+          </span>
+          {% elif score >= 500 %}
+          <span class="rating-badge rating-fair">
+            <i class="fas fa-minus-circle"></i> Fair
+          </span>
+          {% else %}
+          <span class="rating-badge rating-poor">
+            <i class="fas fa-exclamation-triangle"></i> Needs Improvement
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
+<!-- Quick Stats -->
+<section class="quick-stats">
+  <div class="container">
+    <div class="quick-stats-grid">
+      <div class="quick-stat-card">
+        <div class="quick-stat-icon">
+          <i class="fas fa-exchange-alt"></i>
+        </div>
+        <div class="quick-stat-info">
+          <span class="quick-stat-value">{{ features.total_transactions or 0 }}</span>
+          <span class="quick-stat-label">Total Transactions</span>
+        </div>
+      </div>
+
+      <div class="quick-stat-card">
+        <div class="quick-stat-icon">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="quick-stat-info">
+          <span class="quick-stat-value">{{ features.account_age_days or 0 }}</span>
+          <span class="quick-stat-label">Account Age (Days)</span>
+        </div>
+      </div>
+
+      <div class="quick-stat-card">
+        <div class="quick-stat-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="quick-stat-info">
+          <span class="quick-stat-value">{{ features.unique_counterparties or 0 }}</span>
+          <span class="quick-stat-label">Unique Counterparties</span>
+        </div>
+      </div>
+
+      <div class="quick-stat-card">
+        <div class="quick-stat-icon">
+          <i class="fab fa-ethereum"></i>
+        </div>
+        <div class="quick-stat-info">
+          <span class="quick-stat-value">{{ "%.4f"|format(features.net_eth_change or 0) }}</span>
+          <span class="quick-stat-label">Net ETH Change</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Action Bar -->
 {% if report_enabled %}
-<div class="action-row">
-  <a class="btn secondary" href="/api/v1/wallets/{{ wallet_address }}/report" target="_blank" rel="noreferrer">
-    Download Markdown Report
-  </a>
-</div>
+<section class="action-bar">
+  <div class="container">
+    <div class="action-bar-content">
+      <div class="action-bar-info">
+        <i class="fas fa-file-download"></i>
+        <span>Generate a detailed credit report for this wallet</span>
+      </div>
+      <a href="/api/v1/wallets/{{ wallet_address }}/report" target="_blank" class="btn btn-primary">
+        <i class="fas fa-download"></i>
+        Download Report
+      </a>
+    </div>
+  </div>
+</section>
 {% endif %}
 
-<section class="grid">
-  <article class="stat-card span-2">
-    <p class="eyebrow">Summary</p>
-    <div class="summary-grid">
-      <div>
-        <p class="summary-label">Total Transactions</p>
-        <p class="summary-value">{{ features.total_transactions or 0 }}</p>
+<!-- Main Content Grid -->
+<section class="details-section">
+  <div class="container">
+    <div class="details-grid">
+      <!-- Features Table -->
+      <div class="details-card features-card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-list-ul"></i>
+            On-Chain Features
+          </h3>
+          <span class="card-badge">{{ features|length }} Metrics</span>
+        </div>
+        <div class="card-body">
+          <div class="features-table-wrapper">
+            <table class="features-table">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for key, value in features.items() %}
+                <tr>
+                  <td>
+                    <span class="feature-name">{{ key.replace("_", " ")|title }}</span>
+                    <code class="feature-key">{{ key }}</code>
+                  </td>
+                  <td>
+                    <span class="feature-value">
+                      {% if value is number %}
+                        {% if value == value|int %}
+                          {{ value|int }}
+                        {% else %}
+                          {{ "%.4f"|format(value) }}
+                        {% endif %}
+                      {% else %}
+                        {{ value }}
+                      {% endif %}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      <div>
-        <p class="summary-label">Account Age (days)</p>
-        <p class="summary-value">{{ features.account_age_days or 0 }}</p>
-      </div>
-      <div>
-        <p class="summary-label">Unique Counterparties</p>
-        <p class="summary-value">{{ features.unique_counterparties or 0 }}</p>
-      </div>
-      <div>
-        <p class="summary-label">Net ETH Change</p>
-        <p class="summary-value">{{ "%.3f"|format(features.net_eth_change or 0) }}</p>
+
+      <!-- Off-Chain Persona -->
+      <div class="details-card persona-card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-user-circle"></i>
+            Off-Chain Persona
+          </h3>
+        </div>
+        <div class="card-body">
+          {% if offchain %}
+          <div class="persona-grid">
+            {% for key, value in offchain.items() %}
+            <div class="persona-item">
+              <div class="persona-icon">
+                {% if 'age' in key.lower() %}
+                <i class="fas fa-birthday-cake"></i>
+                {% elif 'income' in key.lower() or 'salary' in key.lower() %}
+                <i class="fas fa-money-bill-wave"></i>
+                {% elif 'job' in key.lower() or 'occupation' in key.lower() or 'employment' in key.lower() %}
+                <i class="fas fa-briefcase"></i>
+                {% elif 'education' in key.lower() %}
+                <i class="fas fa-graduation-cap"></i>
+                {% elif 'location' in key.lower() or 'country' in key.lower() or 'city' in key.lower() %}
+                <i class="fas fa-map-marker-alt"></i>
+                {% elif 'risk' in key.lower() %}
+                <i class="fas fa-exclamation-triangle"></i>
+                {% else %}
+                <i class="fas fa-tag"></i>
+                {% endif %}
+              </div>
+              <div class="persona-details">
+                <span class="persona-label">{{ key.replace("_", " ")|title }}</span>
+                <span class="persona-value">{{ value }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <i class="fas fa-user-slash"></i>
+            <p>No off-chain persona data available</p>
+          </div>
+          {% endif %}
+        </div>
       </div>
     </div>
-  </article>
-
-  <article class="stat-card">
-    <p class="eyebrow">Off-chain Persona</p>
-    <ul class="detail-list">
-      {% for key, value in offchain.items() %}
-      <li><span>{{ key.replace("_", " ")|title }}</span><strong>{{ value }}</strong></li>
-      {% endfor %}
-    </ul>
-  </article>
-</section>
-
-<section class="stat-card span-2">
-  <div class="features-header">
-    <p class="eyebrow">Feature Table</p>
-    <a href="/" class="nav-link subtle">Run another score →</a>
   </div>
-  <table class="features-table">
-    <thead>
-      <tr>
-        <th>Feature</th>
-        <th>Value</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for key, value in features.items() %}
-      <tr>
-        <td class="mono">{{ key }}</td>
-        <td>{{ value }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </section>
+
+<!-- Score Analysis -->
+<section class="analysis-section">
+  <div class="container">
+    <div class="analysis-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-chart-line"></i>
+          Score Analysis
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="score-breakdown">
+          <div class="breakdown-item">
+            <div class="breakdown-header">
+              <span class="breakdown-label">Transaction Activity</span>
+              <span class="breakdown-value">{{ features.total_transactions or 0 }} txns</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: {{ [100, (features.total_transactions or 0) / 10]|min }}%;"></div>
+            </div>
+          </div>
+
+          <div class="breakdown-item">
+            <div class="breakdown-header">
+              <span class="breakdown-label">Account Maturity</span>
+              <span class="breakdown-value">{{ features.account_age_days or 0 }} days</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: {{ [100, (features.account_age_days or 0) / 3.65]|min }}%;"></div>
+            </div>
+          </div>
+
+          <div class="breakdown-item">
+            <div class="breakdown-header">
+              <span class="breakdown-label">Network Diversity</span>
+              <span class="breakdown-value">{{ features.unique_counterparties or 0 }} addresses</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: {{ [100, (features.unique_counterparties or 0) * 2]|min }}%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Navigation -->
+<section class="back-nav">
+  <div class="container">
+    <a href="/" class="back-link">
+      <i class="fas fa-arrow-left"></i>
+      <span>Analyze Another Wallet</span>
+    </a>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Animate score ring on load
+  document.addEventListener('DOMContentLoaded', function() {
+    const scoreRing = document.querySelector('.score-ring');
+    if (scoreRing) {
+      const score = parseFloat(scoreRing.dataset.score) || 0;
+      const progress = (score / 1000) * 100;
+      const circle = scoreRing.querySelector('.score-ring-progress');
+      const circumference = 2 * Math.PI * 90;
+      const offset = circumference - (progress / 100) * circumference;
+      
+      circle.style.strokeDasharray = circumference;
+      circle.style.strokeDashoffset = circumference;
+      
+      setTimeout(() => {
+        circle.style.transition = 'stroke-dashoffset 1.5s ease-out';
+        circle.style.strokeDashoffset = offset;
+      }, 100);
+    }
+  });
+</script>
 {% endblock %}
 

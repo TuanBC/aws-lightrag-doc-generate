@@ -1,52 +1,259 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="hero-card">
-  <div>
-    <p class="eyebrow">Monolith · Stateless API</p>
-    <h1>Assess Ethereum wallet creditworthiness instantly</h1>
-    <p class="lede">
-      Submit any onchain address to generate a proprietary score with feature-level
-      transparency, inspired by the Etherscan experience.
-    </p>
-  </div>
-  <form method="post" action="/scores" class="address-form" enctype="application/x-www-form-urlencoded">
-    <label for="wallet_address">Ethereum Address</label>
-    <div class="input-row">
-      <input
-        type="text"
-        id="wallet_address"
-        name="wallet_address"
-        minlength="42"
-        maxlength="42"
-        placeholder="0x..."
-        required
-        autocomplete="off"
-      />
-      <button type="submit">Check Score</button>
+<!-- Hero Section -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <i class="fab fa-ethereum"></i>
+        <span>Ethereum Blockchain Analytics</span>
+      </div>
+      <h1 class="hero-title">
+        Assess Wallet <span class="text-gradient">Creditworthiness</span> Instantly
+      </h1>
+      <p class="hero-description">
+        Enter any Ethereum address to generate a comprehensive credit score with 
+        feature-level transparency, powered by real-time blockchain data.
+      </p>
+
+      <!-- Search Form -->
+      <form method="post" action="/scores" class="search-form" id="scoreForm">
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            id="wallet_address"
+            name="wallet_address"
+            class="search-input"
+            placeholder="Enter Ethereum address (0x...)"
+            minlength="42"
+            maxlength="42"
+            autocomplete="off"
+            spellcheck="false"
+            required
+          />
+          <button type="submit" class="search-button" id="submitBtn">
+            <span class="btn-text">Analyze</span>
+            <span class="btn-loading">
+              <i class="fas fa-spinner fa-spin"></i>
+            </span>
+          </button>
+        </div>
+        <div class="search-feedback" id="searchFeedback">
+          {% if message %}
+          <div class="alert alert-error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>{{ message }}</span>
+          </div>
+          {% endif %}
+        </div>
+        <div class="search-hint">
+          <i class="fas fa-info-circle"></i>
+          <span>Enter a valid 42-character Ethereum address starting with 0x</span>
+        </div>
+      </form>
     </div>
-    {% if message %}
-    <p class="feedback">{{ message }}</p>
-    {% endif %}
-  </form>
+
+    <!-- Hero Visual -->
+    <div class="hero-visual">
+      <div class="hero-card-stack">
+        <div class="floating-card card-1">
+          <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
+          <div class="card-content">
+            <span class="card-value">850</span>
+            <span class="card-label">Credit Score</span>
+          </div>
+        </div>
+        <div class="floating-card card-2">
+          <div class="card-icon"><i class="fas fa-exchange-alt"></i></div>
+          <div class="card-content">
+            <span class="card-value">1,247</span>
+            <span class="card-label">Transactions</span>
+          </div>
+        </div>
+        <div class="floating-card card-3">
+          <div class="card-icon"><i class="fas fa-clock"></i></div>
+          <div class="card-content">
+            <span class="card-value">365</span>
+            <span class="card-label">Days Active</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<section class="grid">
-  <article class="stat-card">
-    <p class="eyebrow">Runtime</p>
-    <h2>FastAPI</h2>
-    <p>Single-process stateless deployment with structured logging and observability hooks.</p>
-  </article>
-  <article class="stat-card">
-    <p class="eyebrow">Data Sources</p>
-    <h2>Etherscan + Synth Personas</h2>
-    <p>Combines raw on-chain telemetry with synthetic off-chain personas for richer insights.</p>
-  </article>
-  <article class="stat-card">
-    <p class="eyebrow">UX</p>
-    <h2>Etherscan-Inspired</h2>
-    <p>Typography, spacing, and colors closely match the familiar block explorer aesthetic.</p>
-  </article>
+<!-- Stats Section -->
+<section class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-chart-pie"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" data-count="1000">0-1000</span>
+          <span class="stat-label">Score Range</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-database"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">15+</span>
+          <span class="stat-label">On-chain Features</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">&lt;3s</span>
+          <span class="stat-label">Analysis Time</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-lock"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">100%</span>
+          <span class="stat-label">Privacy Safe</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Features</span>
+      <h2 class="section-title">Why Choose OnChain Credit?</h2>
+      <p class="section-description">
+        Our platform leverages cutting-edge blockchain analytics to provide accurate, 
+        transparent, and comprehensive credit assessments.
+      </p>
+    </div>
+
+    <div class="features-grid">
+      <!-- Feature 1 -->
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-cubes"></i>
+        </div>
+        <h3 class="feature-title">On-Chain Analysis</h3>
+        <p class="feature-description">
+          Analyze transaction history, account age, counterparty diversity, and 
+          balance changes directly from the Ethereum blockchain.
+        </p>
+        <ul class="feature-list">
+          <li><i class="fas fa-check"></i> Transaction volume analysis</li>
+          <li><i class="fas fa-check"></i> Account age calculation</li>
+          <li><i class="fas fa-check"></i> Network activity metrics</li>
+        </ul>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-user-tag"></i>
+        </div>
+        <h3 class="feature-title">Synthetic Personas</h3>
+        <p class="feature-description">
+          Combine on-chain data with synthetic off-chain personas for richer 
+          insights and more comprehensive credit modeling.
+        </p>
+        <ul class="feature-list">
+          <li><i class="fas fa-check"></i> Behavioral profiling</li>
+          <li><i class="fas fa-check"></i> Risk categorization</li>
+          <li><i class="fas fa-check"></i> Persona matching</li>
+        </ul>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-file-alt"></i>
+        </div>
+        <h3 class="feature-title">Detailed Reports</h3>
+        <p class="feature-description">
+          Generate comprehensive markdown reports with detailed breakdowns of 
+          all scoring factors and recommendations.
+        </p>
+        <ul class="feature-list">
+          <li><i class="fas fa-check"></i> Exportable reports</li>
+          <li><i class="fas fa-check"></i> Feature breakdown</li>
+          <li><i class="fas fa-check"></i> AI-powered insights</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="how-it-works-section">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Process</span>
+      <h2 class="section-title">How It Works</h2>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <div class="step-icon"><i class="fas fa-wallet"></i></div>
+        <h3 class="step-title">Enter Address</h3>
+        <p class="step-description">
+          Input any valid Ethereum wallet address to begin the analysis process.
+        </p>
+      </div>
+
+      <div class="step-connector"><i class="fas fa-arrow-right"></i></div>
+
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <div class="step-icon"><i class="fas fa-cogs"></i></div>
+        <h3 class="step-title">Data Processing</h3>
+        <p class="step-description">
+          Our engine fetches and analyzes transaction history from Etherscan.
+        </p>
+      </div>
+
+      <div class="step-connector"><i class="fas fa-arrow-right"></i></div>
+
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <div class="step-icon"><i class="fas fa-chart-bar"></i></div>
+        <h3 class="step-title">Score Generation</h3>
+        <p class="step-description">
+          Receive a comprehensive credit score with detailed feature breakdown.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-card">
+      <div class="cta-content">
+        <h2 class="cta-title">Ready to Analyze Your First Wallet?</h2>
+        <p class="cta-description">
+          Start exploring the creditworthiness of any Ethereum address today.
+        </p>
+      </div>
+      <a href="#wallet_address" class="cta-button" onclick="document.getElementById('wallet_address').focus(); return false;">
+        <i class="fas fa-rocket"></i>
+        Get Started Now
+      </a>
+    </div>
+  </div>
 </section>
 {% endblock %}
 
