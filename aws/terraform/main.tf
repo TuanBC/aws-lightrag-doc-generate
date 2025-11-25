@@ -93,7 +93,8 @@ resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
         ]
         Resource = [
           aws_secretsmanager_secret.etherscan_api_key.arn,
-          aws_secretsmanager_secret.openrouter_api_key.arn
+          aws_secretsmanager_secret.openrouter_api_key.arn,
+          aws_secretsmanager_secret.bedrock_bearer_token.arn
         ]
       }
     ]
@@ -267,6 +268,10 @@ resource "aws_ecs_task_definition" "app" {
       {
         name      = "OPENROUTER_API_KEY"
         valueFrom = aws_secretsmanager_secret.openrouter_api_key.arn
+      },
+      {
+        name      = "AWS_BEARER_TOKEN_BEDROCK"
+        valueFrom = aws_secretsmanager_secret.bedrock_bearer_token.arn
       }
     ]
 
@@ -329,6 +334,15 @@ resource "aws_secretsmanager_secret" "openrouter_api_key" {
 resource "aws_secretsmanager_secret_version" "openrouter_api_key" {
   secret_id     = aws_secretsmanager_secret.openrouter_api_key.id
   secret_string = var.openrouter_api_key
+}
+
+resource "aws_secretsmanager_secret" "bedrock_bearer_token" {
+  name = "credit-scoring/bedrock-bearer-token"
+}
+
+resource "aws_secretsmanager_secret_version" "bedrock_bearer_token" {
+  secret_id     = aws_secretsmanager_secret.bedrock_bearer_token.id
+  secret_string = var.bedrock_bearer_token
 }
 
 # Outputs
