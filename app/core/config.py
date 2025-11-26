@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -50,8 +50,7 @@ class Settings(BaseModel):
         description="Prompt templates directory",
     )
 
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
 
 def _get_required_env(var_name: str) -> str:
