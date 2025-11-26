@@ -1,65 +1,101 @@
-# Terraform Infrastructure as Code
+# Terraform Infrastructure - AWS App Runner
 
-This directory contains Terraform configuration for provisioning AWS resources.
+Cost-optimized deployment using AWS App Runner (~$5-15/month).
+
+## Architecture
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
+│   GitHub    │────▶│     ECR     │────▶│   App Runner    │
+│   Actions   │     │  Registry   │     │   (0.25 vCPU)   │
+└─────────────┘     └─────────────┘     └─────────────────┘
+                                               │
+                                               ▼
+                                        ┌─────────────┐
+                                        │  Secrets    │
+                                        │  Manager    │
+                                        └─────────────┘
+```
+
+## Cost Breakdown
+
+| Resource | Monthly Cost |
+|----------|-------------|
+| App Runner (0.25 vCPU, 0.5GB) | ~$5-12 |
+| ECR Storage | ~$0.10 |
+| Secrets Manager | ~$0.80 |
+| **Total** | **~$6-15/month** |
 
 ## Prerequisites
 
-1. Terraform installed (>= 1.0)
+1. Terraform >= 1.0
 2. AWS CLI configured
-3. Appropriate AWS permissions
+3. Docker image in ECR (push first via GitHub Actions)
 
-## Usage
-
-### Initialize Terraform
+## Quick Start
 
 ```bash
 cd aws/terraform
 terraform init
+
+# Create terraform.tfvars
+cat > terraform.tfvars << EOF
+aws_region         = "ap-southeast-2"
+etherscan_api_key  = "your-etherscan-api-key"
+openrouter_api_key = "your-openrouter-api-key"
+EOF
+
+terraform apply
 ```
 
-### Plan Changes
+## First-Time Setup
 
-```bash
-terraform plan \
-  -var="etherscan_api_key=your-key-here" \
-  -var="openrouter_api_key=your-key-here"
-```
+1. **Push Docker image first** (App Runner needs an image to start):
+   ```bash
+   # Login to ECR
+   aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.ap-southeast-2.amazonaws.com
+   
+   # Build and push
+   docker build -t credit-scoring-onchain .
+   docker tag credit-scoring-onchain:latest YOUR_ACCOUNT_ID.dkr.ecr.ap-southeast-2.amazonaws.com/credit-scoring-onchain:latest
+   docker push YOUR_ACCOUNT_ID.dkr.ecr.ap-southeast-2.amazonaws.com/credit-scoring-onchain:latest
+   ```
 
-### Apply Configuration
+2. **Apply Terraform**:
+   ```bash
+   terraform apply
+   ```
 
-```bash
-terraform apply \
-  -var="etherscan_api_key=your-key-here" \
-  -var="openrouter_api_key=your-key-here"
-```
+3. **Get your URL**:
+   ```bash
+   terraform output app_runner_service_url
+   ```
 
-### Destroy Resources
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `ecr_repository_url` | ECR URL for Docker pushes |
+| `app_runner_service_url` | Your app's public URL |
+| `app_runner_service_arn` | ARN for deployments |
+
+## Deploying Updates
+
+After initial setup, just push to `main` branch. GitHub Actions will:
+1. Build Docker image
+2. Push to ECR
+3. Trigger App Runner deployment
+
+## Destroying
 
 ```bash
 terraform destroy
 ```
 
-## Variables
+## Files
 
-Create a `terraform.tfvars` file:
+- `main.tf` - App Runner configuration
+- `variables.tf` - Input variables
+- `main.tf.ecs-backup` - Old ECS configuration (backup)
 
-```hcl
-aws_region         = "us-east-1"
-etherscan_api_key  = "your-key"
-openrouter_api_key = "your-key"
-```
-
-Then run:
-```bash
-terraform apply
-```
-
-## Outputs
-
-After applying, Terraform will output:
-- ECR repository URL
-- ECS cluster name
-- Task definition ARN
-
-Use these values to update your GitHub Actions workflow.
 
