@@ -32,6 +32,14 @@ class DummyCreditService:
     def calculate_scorecard_credit_score(self, features):
         return 640.0
 
+    def extract_time_series_data(self, transactions, wallet_address):
+        return {
+            "monthly_tx_count": [],
+            "monthly_tx_volume": [],
+            "monthly_avg_value": [],
+            "cumulative_balance": [],
+        }
+
 
 class DummyOffchain:
     def generate(self, wallet_address, features):
