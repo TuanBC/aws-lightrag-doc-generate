@@ -1284,6 +1284,17 @@ body {
   background: var(--color-bg-tertiary);
 }
 
+.btn-outline {
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+
+.btn-outline:hover {
+  background: var(--color-accent);
+  color: white;
+}
+
 /* Details Section */
 .details-section {
   padding: 48px 0;
@@ -2687,6 +2698,8 @@ body {
 .card-title-sm i {
   color: var(--color-accent);
   font-size: 12px;
+  width: 14px;
+  text-align: center;
 }
 
 /* Metric List */
@@ -2949,6 +2962,12 @@ body {
 
 .features-summary i:first-child {
   color: var(--color-accent);
+  width: 16px;
+  text-align: center;
+}
+
+.features-summary span:first-of-type {
+  flex: 1;
 }
 
 .features-count {
