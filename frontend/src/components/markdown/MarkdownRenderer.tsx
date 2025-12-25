@@ -2,6 +2,7 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeSlug from 'rehype-slug';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MermaidChart from './MermaidChart';
@@ -12,10 +13,23 @@ interface MarkdownRendererProps {
 }
 
 export default function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+    // Handle smooth scroll for anchor links
+    const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+        if (href.startsWith('#')) {
+            e.preventDefault();
+            const targetId = href.slice(1);
+            const targetElement = document.getElementById(targetId);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    };
+
     return (
         <div className={`markdown-body ${className}`}>
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeSlug]}
                 components={{
                     // Code block handling with Mermaid support
                     code({ className, children, ...props }) {
@@ -66,6 +80,20 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
                         );
                     },
 
+                    // Headings with IDs for anchor links
+                    h1({ children, id, ...props }) {
+                        return <h1 id={id} {...props}>{children}</h1>;
+                    },
+                    h2({ children, id, ...props }) {
+                        return <h2 id={id} {...props}>{children}</h2>;
+                    },
+                    h3({ children, id, ...props }) {
+                        return <h3 id={id} {...props}>{children}</h3>;
+                    },
+                    h4({ children, id, ...props }) {
+                        return <h4 id={id} {...props}>{children}</h4>;
+                    },
+
                     // Enhanced image handling
                     img({ src, alt, ...props }) {
                         return (
@@ -100,12 +128,15 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
                         );
                     },
 
-                    // Links open in new tab
+                    // Links with smooth scroll for anchors
                     a({ href, children, ...props }) {
+                        const isAnchor = href?.startsWith('#');
                         const isExternal = href?.startsWith('http');
+
                         return (
                             <a
                                 href={href}
+                                onClick={isAnchor ? (e) => handleLinkClick(e, href!) : undefined}
                                 target={isExternal ? '_blank' : undefined}
                                 rel={isExternal ? 'noopener noreferrer' : undefined}
                                 {...props}

@@ -35,15 +35,26 @@ Generate a complete SRS document following this structure. Include Mermaid diagr
 
 1. **Executive Summary** - Brief overview of the system
 2. **Scope** - What the system will and won't do
-3. **Functional Requirements** - Detailed feature requirements with:
-   - Requirement IDs (REQ-XXX)
-   - Priority (High/Medium/Low)
-   - Description
-4. **Non-Functional Requirements** - Performance, security, scalability
+3. **Functional Requirements** - Present as a MARKDOWN TABLE with columns:
+   | Req ID | Priority | Category | Description | Acceptance Criteria |
+   Use format REQ-001, REQ-002, etc. for requirement IDs.
+4. **Non-Functional Requirements** - Performance, security, scalability (also use tables)
 5. **Use Case Diagram** - Mermaid diagram showing actors and use cases
 6. **Data Flow Diagram** - Mermaid diagram showing data flow
 7. **System Architecture** - High-level architecture diagram
 8. **Acceptance Criteria** - Testable criteria for each requirement
+
+### Table of Contents Format
+
+At the beginning, include a Table of Contents with anchor links like:
+```markdown
+## Table of Contents
+1. [Executive Summary](#executive-summary)
+2. [Scope](#scope)
+3. [Functional Requirements](#functional-requirements)
+...
+```
+Use lowercase with hyphens for section IDs (e.g., `#functional-requirements`).
 
 ### Mermaid Diagram Guidelines
 
