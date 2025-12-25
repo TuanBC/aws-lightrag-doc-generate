@@ -1,63 +1,56 @@
 [project]
-name = "credit-scoring-onchain"
+name = "technical-doc-generator"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI-powered Technical Document Generator using Context7 MCP and AWS Bedrock"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "aiofiles>=24.1.0",
-    "bcrypt==5.0.0",
-    "beautifulsoup4>=4.14.2",
-    "boto3>=1.41.2",
-    "capstone==5.0.6",
-    "certifi==2025.8.3",
-    "cffi==2.0.0",
-    "cfgv==3.4.0",
-    "charset-normalizer==3.4.3",
-    "colorama==0.4.6",
-    "configparser==7.2.0",
-    "cryptography==46.0.1",
-    "distlib==0.4.0",
-    "docopt==0.6.2",
-    "exscript==2.6.32",
+    # FastAPI and web server
     "fastapi>=0.121.3",
-    "filelock==3.19.1",
-    "future==1.0.0",
-    "gradio>=5.50.0",
-    "httpx>=0.28.1",
-    "identify==2.6.15",
-    "idna==3.10",
-    "invoke==2.2.0",
-    "jupyterlab>=4.5.0",
-    "keystone-engine==0.9.2",
+    "uvicorn>=0.38.0",
+    "python-multipart>=0.0.20",
+    "aiofiles>=24.1.0",
+    # AWS SDK and LangChain
+    "boto3>=1.41.2",
     "langchain-aws>=1.0.0",
     "langchain-openai>=1.0.3",
-    "lxml==6.0.2",
-    "nodeenv==1.9.1",
-    "numpy>=2.3.5",
-    "openai>=2.8.1",
-    "pandas>=2.3.3",
-    "paramiko==4.0.0",
-    "passlib==1.7.4",
-    "platformdirs==4.4.0",
-    "pre-commit==4.3.0",
-    "pycparser==2.23",
-    "pycryptodome==3.23.0",
-    "pycryptodomex==3.23.0",
-    "pynacl==1.6.0",
-    "pyserial==3.5",
+    # HTTP client for MCP
+    "httpx>=0.28.1",
+    "httpx-sse>=0.4.0",
+    # Template and markdown processing
+    "jinja2>=3.1.0",
+    "markdown>=3.5.0",
+    "pymdown-extensions>=10.0",
+    # Environment and config
+    "python-dotenv>=1.2.1",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    # Utilities
+    "colorama>=0.4.6",
+    "requests>=2.32.5",
+    "pyyaml>=6.0.3",
+    # Development tools
+    "pre-commit>=4.3.0",
     "pytest>=9.0.1",
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
-    "python-dotenv>=1.2.1",
-    "python-multipart>=0.0.20",
-    "pyusb==1.3.1",
-    "pyyaml==6.0.3",
-    "qrcode==8.2",
-    "requests==2.32.5",
-    "typing-extensions==4.15.0",
-    "urllib3==2.5.0",
-    "uvicorn>=0.38.0",
-    "virtualenv==20.35.4",
-    "web3>=7.14.0",
+    "botocore[crt]>=1.41.2",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8.0",
+    "jupyterlab>=4.5.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,178 +1,44 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{{ page_title or "Onchain Credit Scoring" }}{% endblock %}</title>
-  <meta name="description" content="Professional blockchain-based credit scoring for Ethereum wallets">
-  
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  
-  <!-- Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <!-- Styles -->
-  <link rel="stylesheet" href="/static/css/etherscan.css">
-  
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>Ξ</text></svg>">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - {{ app_name }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    </script>
 </head>
 <body>
-  <!-- Top Banner -->
-  <div class="top-banner">
-    <div class="container">
-      <span class="banner-text">
-        <i class="fas fa-chart-line"></i>
-        Powered by Etherscan Data · Real-time On-chain Analytics
-      </span>
-    </div>
-  </div>
-
-  <!-- Header -->
-  <header class="header">
-    <div class="container header-inner">
-      <!-- Logo -->
-      <a href="/" class="logo">
-        <div class="logo-icon">
-          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="40" height="40" rx="8" fill="url(#logo-gradient)"/>
-            <path d="M20 8L28 28H12L20 8Z" fill="white" opacity="0.9"/>
-            <path d="M20 14L25 26H15L20 14Z" fill="white"/>
-            <defs>
-              <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#627EEA"/>
-                <stop offset="1" stop-color="#3B5998"/>
-              </linearGradient>
-            </defs>
-          </svg>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <span class="logo-icon">📄</span>
+                    <span class="logo-text">{{ app_name }}</span>
+                </a>
+                <nav class="nav">
+                    <a href="/" class="nav-link">Generate</a>
+                    <a href="/validate" class="nav-link">Validate</a>
+                    <a href="/docs" class="nav-link" target="_blank">API Docs</a>
+                </nav>
+            </div>
         </div>
-        <div class="logo-text">
-          <span class="logo-title">OnChain Credit</span>
-          <span class="logo-subtitle">Wallet Scoring Platform</span>
+    </header>
+    
+    <main class="main">
+        <div class="container">
+            {% block content %}{% endblock %}
         </div>
-      </a>
-
-      <!-- Navigation -->
-      <nav class="nav-menu">
-        <a href="/" class="nav-item {% if active_page == 'home' %}active{% endif %}">
-          <i class="fas fa-home"></i>
-          <span>Home</span>
-        </a>
-        <a href="https://etherscan.io" target="_blank" rel="noopener" class="nav-item">
-          <i class="fas fa-external-link-alt"></i>
-          <span>Etherscan</span>
-        </a>
-        <a href="/api/health" target="_blank" class="nav-item">
-          <i class="fas fa-heart-pulse"></i>
-          <span>API Health</span>
-        </a>
-      </nav>
-
-      <!-- Mobile Menu Toggle -->
-      <button class="mobile-menu-toggle" aria-label="Toggle menu">
-        <i class="fas fa-bars"></i>
-      </button>
-
-      <!-- Theme Toggle -->
-      <button class="theme-toggle" aria-label="Toggle theme">
-        <i class="fas fa-sun"></i>
-        <i class="fas fa-moon"></i>
-      </button>
-    </div>
-  </header>
-
-  <!-- Mobile Navigation -->
-  <nav class="mobile-nav">
-    <a href="/" class="mobile-nav-item">
-      <i class="fas fa-home"></i>
-      Home
-    </a>
-    <a href="https://etherscan.io" target="_blank" rel="noopener" class="mobile-nav-item">
-      <i class="fas fa-external-link-alt"></i>
-      Etherscan
-    </a>
-    <a href="/api/health" target="_blank" class="mobile-nav-item">
-      <i class="fas fa-heart-pulse"></i>
-      API Health
-    </a>
-  </nav>
-
-  <!-- Main Content -->
-  <main class="main-content">
-    {% block content %}{% endblock %}
-  </main>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-grid">
-        <!-- About -->
-        <div class="footer-section">
-          <h4 class="footer-title">About</h4>
-          <p class="footer-text">
-            OnChain Credit is a blockchain-based credit scoring platform that analyzes 
-            Ethereum wallet activity to generate comprehensive credit assessments.
-          </p>
+    </main>
+    
+    <footer class="footer">
+        <div class="container">
+            <p>Technical Document Generator &copy; 2024 | Powered by AWS Bedrock & Context7</p>
         </div>
-
-        <!-- Quick Links -->
-        <div class="footer-section">
-          <h4 class="footer-title">Quick Links</h4>
-          <ul class="footer-links">
-            <li><a href="/"><i class="fas fa-arrow-right"></i> Dashboard</a></li>
-            <li><a href="https://etherscan.io" target="_blank"><i class="fas fa-arrow-right"></i> Etherscan</a></li>
-            <li><a href="/api/health"><i class="fas fa-arrow-right"></i> API Status</a></li>
-          </ul>
-        </div>
-
-        <!-- Resources -->
-        <div class="footer-section">
-          <h4 class="footer-title">Resources</h4>
-          <ul class="footer-links">
-            <li><a href="https://ethereum.org" target="_blank"><i class="fas fa-arrow-right"></i> Ethereum</a></li>
-            <li><a href="https://docs.etherscan.io" target="_blank"><i class="fas fa-arrow-right"></i> API Docs</a></li>
-          </ul>
-        </div>
-
-        <!-- Social -->
-        <div class="footer-section">
-          <h4 class="footer-title">Connect</h4>
-          <div class="social-links">
-            <a href="https://github.com" target="_blank" aria-label="GitHub">
-              <i class="fab fa-github"></i>
-            </a>
-            <a href="https://twitter.com" target="_blank" aria-label="Twitter">
-              <i class="fab fa-twitter"></i>
-            </a>
-            <a href="https://discord.com" target="_blank" aria-label="Discord">
-              <i class="fab fa-discord"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div class="footer-bottom">
-        <div class="footer-copyright">
-          <span>© {{ 2025 }} OnChain Credit. Built with</span>
-          <i class="fas fa-heart" style="color: #ef4444; margin: 0 4px;"></i>
-          <span>using FastAPI & Etherscan</span>
-        </div>
-        <div class="footer-meta">
-          <span class="version-badge">
-            <i class="fas fa-code-branch"></i>
-            v1.0.0
-          </span>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Scripts -->
-  <script src="/static/js/main.js"></script>
-  {% block scripts %}{% endblock %}
+    </footer>
+    
+    {% block scripts %}{% endblock %}
 </body>
 </html>
-

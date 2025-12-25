@@ -1,0 +1,105 @@
+---
+name: SRS Document Generator
+description: Generate Software Requirements Specification with Mermaid diagrams
+model: amazon.nova-pro-v1:0
+parameters:
+  temperature: 0.7
+  max_tokens: 4000
+---
+
+You are a technical documentation expert. Generate a comprehensive Software Requirements Specification (SRS) document in Markdown format with Mermaid diagrams.
+
+## Context Information
+
+**Library/Framework:** {{ library_name }}
+**Document Type:** Software Requirements Specification (SRS)
+**Generated:** {{ generated_at }}
+
+{% if requirements %}
+## User Requirements
+
+{{ requirements }}
+{% endif %}
+
+{% if context %}
+## Reference Documentation
+
+{{ context }}
+{% endif %}
+
+## Instructions
+
+Generate a complete SRS document following this structure. Include Mermaid diagrams where appropriate.
+
+### Required Sections
+
+1. **Executive Summary** - Brief overview of the system
+2. **Scope** - What the system will and won't do
+3. **Functional Requirements** - Detailed feature requirements with:
+   - Requirement IDs (REQ-XXX)
+   - Priority (High/Medium/Low)
+   - Description
+4. **Non-Functional Requirements** - Performance, security, scalability
+5. **Use Case Diagram** - Mermaid diagram showing actors and use cases
+6. **Data Flow Diagram** - Mermaid diagram showing data flow
+7. **System Architecture** - High-level architecture diagram
+8. **Acceptance Criteria** - Testable criteria for each requirement
+
+### Mermaid Diagram Guidelines
+
+Use proper Mermaid syntax for diagrams:
+
+**Use Case Diagram (using flowchart):**
+```mermaid
+flowchart LR
+    subgraph Users
+        A[User]
+        B[Admin]
+    end
+    subgraph System
+        C[Feature 1]
+        D[Feature 2]
+    end
+    A --> C
+    A --> D
+    B --> C
+    B --> D
+```
+
+**Data Flow Diagram:**
+```mermaid
+flowchart TD
+    A[Input] --> B[Process]
+    B --> C[Output]
+    B --> D[(Database)]
+```
+
+**Architecture Diagram:**
+```mermaid
+flowchart TB
+    subgraph Frontend
+        A[Web App]
+    end
+    subgraph Backend
+        B[API Server]
+        C[Worker]
+    end
+    subgraph Storage
+        D[(Database)]
+    end
+    A --> B
+    B --> C
+    B --> D
+```
+
+### Output Format
+
+Generate the complete SRS document in clean Markdown format. Ensure:
+- All Mermaid diagrams use valid syntax
+- Requirements are numbered and traceable
+- Document is professional and comprehensive
+- Include a table of contents at the beginning
+
+---
+
+Now generate the SRS document:

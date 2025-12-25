@@ -1,0 +1,21 @@
+# Lambda-optimized Dockerfile for FastAPI
+FROM public.ecr.aws/lambda/python:3.12
+
+# Install uv for faster dependency installation
+RUN pip install uv
+
+# Copy dependency files
+COPY pyproject.toml .
+
+# Install dependencies
+RUN uv pip install --system -e . mangum
+
+# Copy application code
+COPY app/ ${LAMBDA_TASK_ROOT}/app/
+COPY prompts/ ${LAMBDA_TASK_ROOT}/prompts/
+
+# Copy Lambda handler
+COPY lambda_handler.py ${LAMBDA_TASK_ROOT}/
+
+# Set the handler
+CMD ["lambda_handler.handler"]

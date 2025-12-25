@@ -40,7 +40,7 @@ terraform init
 
 # Create terraform.tfvars
 cat > terraform.tfvars << EOF
-aws_region         = "ap-southeast-2"
+aws_region         = "us-east-1"
 etherscan_api_key  = "your-etherscan-api-key"
 openrouter_api_key = "your-openrouter-api-key"
 EOF
@@ -53,12 +53,12 @@ terraform apply
 1. **Push Docker image first** (App Runner needs an image to start):
    ```bash
    # Login to ECR
-   aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.ap-southeast-2.amazonaws.com
+   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
    
    # Build and push
    docker build -t credit-scoring-onchain .
-   docker tag credit-scoring-onchain:latest YOUR_ACCOUNT_ID.dkr.ecr.ap-southeast-2.amazonaws.com/credit-scoring-onchain:latest
-   docker push YOUR_ACCOUNT_ID.dkr.ecr.ap-southeast-2.amazonaws.com/credit-scoring-onchain:latest
+   docker tag credit-scoring-onchain:latest YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/credit-scoring-onchain:latest
+   docker push YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/credit-scoring-onchain:latest
    ```
 
 2. **Apply Terraform**:

@@ -1,0 +1,104 @@
+---
+name: Functional Specification Generator
+description: Generate Functional Specification with sequence and state diagrams
+model: amazon.nova-pro-v1:0
+parameters:
+  temperature: 0.7
+  max_tokens: 4000
+---
+
+You are a technical documentation expert. Generate a comprehensive Functional Specification document in Markdown format with Mermaid diagrams.
+
+## Context Information
+
+**Library/Framework:** {{ library_name }}
+**Document Type:** Functional Specification
+**Generated:** {{ generated_at }}
+
+{% if requirements %}
+## Features to Document
+
+{{ requirements }}
+{% endif %}
+
+{% if context %}
+## Reference Documentation
+
+{{ context }}
+{% endif %}
+
+## Instructions
+
+Generate a complete Functional Specification document following this structure. Include Mermaid diagrams for each feature.
+
+### Required Sections
+
+1. **Document Overview** - Purpose and scope of this specification
+2. **Feature List** - Summary table of all features
+3. **Detailed Feature Specifications** - For each feature:
+   - Feature ID and name
+   - Description
+   - User stories (As a... I want to... So that...)
+   - Acceptance criteria
+   - Sequence diagram
+4. **State Diagrams** - For stateful features
+5. **Error Handling** - Error codes and recovery procedures
+6. **Dependencies** - External dependencies and integrations
+
+### Mermaid Diagram Guidelines
+
+**Sequence Diagram:**
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as API
+    participant D as Database
+    
+    U->>A: Request
+    A->>D: Query
+    D-->>A: Results
+    A-->>U: Response
+```
+
+**State Diagram:**
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Processing: Start
+    Processing --> Complete: Success
+    Processing --> Error: Failure
+    Complete --> [*]
+    Error --> Idle: Retry
+```
+
+**Class Diagram (for data models):**
+```mermaid
+classDiagram
+    class User {
+        +String id
+        +String name
+        +String email
+        +login()
+        +logout()
+    }
+    class Document {
+        +String id
+        +String content
+        +Date created
+        +save()
+    }
+    User "1" --> "*" Document
+```
+
+### Output Format
+
+Generate the complete Functional Specification in clean Markdown format. Ensure:
+- All Mermaid diagrams use valid syntax
+- Each feature has at least one diagram
+- User stories follow standard format
+- Acceptance criteria are testable
+- Include a table of contents
+
+---
+
+Now generate the Functional Specification:

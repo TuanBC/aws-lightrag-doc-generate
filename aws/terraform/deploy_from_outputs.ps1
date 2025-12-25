@@ -17,7 +17,7 @@ docker tag credit-scoring-onchain:latest $ecrUrl:latest
 
 # Login to ECR
 Write-Host "Logging in to ECR..."
-aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin $ecrUrl.Split('/')[0]
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ecrUrl.Split('/')[0]
 
 # Push Docker image to ECR
 Write-Host "Pushing Docker image to ECR..."

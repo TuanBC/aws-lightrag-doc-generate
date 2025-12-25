@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <h1>Validate Document</h1>
+    <p class="hero-subtitle">Check markdown syntax, mermaid charts, and content quality</p>
+</div>
+
+{% if error %}
+<div class="alert alert-error">
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+{% if report %}
+<div class="validation-report">
+    <div class="report-header {% if report.overall_passed %}report-passed{% else %}report-failed{% endif %}">
+        <h2>
+            {% if report.overall_passed %}
+            ✅ Validation Passed
+            {% else %}
+            ❌ Validation Failed
+            {% endif %}
+        </h2>
+        <div class="report-stats">
+            <span class="stat stat-error">{{ report.total_errors }} Errors</span>
+            <span class="stat stat-warning">{{ report.total_warnings }} Warnings</span>
+        </div>
+    </div>
+
+    <div class="report-sections">
+        <div class="report-section">
+            <h3>📝 Markdown Syntax</h3>
+            <div
+                class="section-status {% if report.markdown_result.passed %}status-passed{% else %}status-failed{% endif %}">
+                {% if report.markdown_result.passed %}Passed{% else %}Failed{% endif %}
+                ({{ report.markdown_result.checked_items }} lines checked)
+            </div>
+            {% if report.markdown_result.issues %}
+            <ul class="issues-list">
+                {% for issue in report.markdown_result.issues %}
+                <li class="issue issue-{{ issue.severity.value }}">
+                    <span class="issue-severity">{{ issue.severity.value | upper }}</span>
+                    {{ issue.message }}
+                    {% if issue.line_number %}(line {{ issue.line_number }}){% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+
+        <div class="report-section">
+            <h3>📊 Mermaid Charts</h3>
+            <div
+                class="section-status {% if report.mermaid_result.passed %}status-passed{% else %}status-failed{% endif %}">
+                {% if report.mermaid_result.passed %}Passed{% else %}Failed{% endif %}
+                ({{ report.mermaid_result.checked_items }} diagrams checked)
+            </div>
+            {% if report.mermaid_result.issues %}
+            <ul class="issues-list">
+                {% for issue in report.mermaid_result.issues %}
+                <li class="issue issue-{{ issue.severity.value }}">
+                    <span class="issue-severity">{{ issue.severity.value | upper }}</span>
+                    {{ issue.message }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+
+        {% if report.content_result %}
+        <div class="report-section">
+            <h3>📋 Content Quality</h3>
+            <div
+                class="section-status {% if report.content_result.passed %}status-passed{% else %}status-failed{% endif %}">
+                {% if report.content_result.passed %}Passed{% else %}Needs Improvement{% endif %}
+            </div>
+            {% if report.content_result.issues %}
+            <ul class="issues-list">
+                {% for issue in report.content_result.issues %}
+                <li class="issue issue-{{ issue.severity.value }}">
+                    <span class="issue-severity">{{ issue.severity.value | upper }}</span>
+                    {{ issue.message }}
+                    {% if issue.suggestion %}<br><small>💡 {{ issue.suggestion }}</small>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if report.suggestions %}
+    <div class="report-suggestions">
+        <h3>💡 Suggestions</h3>
+        <ul>
+            {% for suggestion in report.suggestions %}
+            <li>{{ suggestion }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h2>📄 Paste Document to Validate</h2>
+    </div>
+    <div class="card-body">
+        <form action="/validate" method="POST" class="form">
+            <div class="form-group">
+                <label for="content">Document Content (Markdown)</label>
+                <textarea name="content" id="content" class="form-control code-input" rows="15"
+                    placeholder="Paste your markdown document here..."
+                    required>{% if content %}{{ content }}{% endif %}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="requirements">Requirements to Check Against (Optional)</label>
+                <textarea name="requirements" id="requirements" class="form-control" rows="4"
+                    placeholder="Paste requirements for compliance check..."></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    ✅ Validate Document
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

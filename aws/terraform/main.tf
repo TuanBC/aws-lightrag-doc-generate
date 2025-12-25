@@ -1,5 +1,8 @@
-# Terraform configuration for AWS App Runner (Cost-Optimized)
-# Estimated cost: ~$5-15/month for low traffic
+# =============================================================================
+# Terraform configuration for Technical Document Generator (ZERO-SCALE)
+# AWS Resources: Lambda + API Gateway + S3 (Static Frontend)
+# Costs $0 when idle, pay only per request
+# =============================================================================
 
 terraform {
   required_version = ">= 1.0"
@@ -15,25 +18,81 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ============================================
-# ECR Repository (reuse existing or create)
-# ============================================
+data "aws_caller_identity" "current" {}
+
+locals {
+  function_name = "tech-doc-generator"
+  api_name      = "tech-doc-api"
+}
+
+# =============================================================================
+# S3 Bucket for Static Frontend (Optional)
+# =============================================================================
+
+resource "aws_s3_bucket" "frontend" {
+  bucket        = "tech-doc-frontend-${data.aws_caller_identity.current.account_id}"
+  force_destroy = true
+
+  tags = {
+    Name      = "tech-doc-frontend"
+    ManagedBy = "terraform"
+  }
+}
+
+resource "aws_s3_bucket_website_configuration" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "index.html"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.frontend.arn}/*"
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.frontend]
+}
+
+# =============================================================================
+# ECR Repository (for Lambda container image)
+# =============================================================================
+
 resource "aws_ecr_repository" "app" {
-  name                 = "credit-scoring-onchain"
+  name                 = local.function_name
   image_tag_mutability = "MUTABLE"
-  force_delete         = true  # Allow deletion even with images
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
   }
-
-  # Lifecycle policy to save storage costs
-  lifecycle {
-    prevent_destroy = false
-  }
 }
 
-# ECR Lifecycle Policy - Keep only last 3 images to save costs
 resource "aws_ecr_lifecycle_policy" "app" {
   repository = aws_ecr_repository.app.name
 
@@ -55,11 +114,33 @@ resource "aws_ecr_lifecycle_policy" "app" {
   })
 }
 
-# ============================================
-# IAM Role for App Runner ECR Access
-# ============================================
-resource "aws_iam_role" "apprunner_ecr_access" {
-  name = "apprunner-ecr-access-role"
+# =============================================================================
+# S3 Bucket for LightRAG Data (Graph Index)
+# =============================================================================
+
+resource "aws_s3_bucket" "lightrag_data" {
+  bucket        = "tech-doc-lightrag-${data.aws_caller_identity.current.account_id}"
+  force_destroy = true
+
+  tags = {
+    Name      = "tech-doc-lightrag-data"
+    ManagedBy = "terraform"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "lightrag_data" {
+  bucket = aws_s3_bucket.lightrag_data.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# =============================================================================
+# IAM Role for Lambda
+# =============================================================================
+
+resource "aws_iam_role" "lambda_role" {
+  name = "${local.function_name}-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -68,42 +149,21 @@ resource "aws_iam_role" "apprunner_ecr_access" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "build.apprunner.amazonaws.com"
+          Service = "lambda.amazonaws.com"
         }
       }
     ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "apprunner_ecr_access" {
-  role       = aws_iam_role.apprunner_ecr_access.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# ============================================
-# IAM Role for App Runner Instance
-# ============================================
-resource "aws_iam_role" "apprunner_instance" {
-  name = "apprunner-instance-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "tasks.apprunner.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# Policy for Secrets Manager access
-resource "aws_iam_role_policy" "apprunner_secrets" {
-  name = "apprunner-secrets-access"
-  role = aws_iam_role.apprunner_instance.id
+resource "aws_iam_role_policy" "lambda_bedrock" {
+  name = "${local.function_name}-bedrock-policy"
+  role = aws_iam_role.lambda_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -111,156 +171,145 @@ resource "aws_iam_role_policy" "apprunner_secrets" {
       {
         Effect = "Allow"
         Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream"
+        ]
+        Resource = [
+          "arn:aws:bedrock:${var.bedrock_region}::foundation-model/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          "arn:aws:secretsmanager:${var.aws_region}:*:secret:credit-scoring/*"
+          "arn:aws:secretsmanager:${var.aws_region}:*:secret:tech-doc/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.lightrag_data.arn,
+          "${aws_s3_bucket.lightrag_data.arn}/*"
         ]
       }
     ]
   })
 }
 
-# ============================================
-# Secrets Manager (Environment Variables)
-# ============================================
-resource "aws_secretsmanager_secret" "etherscan_api_key" {
-  name                    = "credit-scoring/etherscan-api-key"
-  recovery_window_in_days = 0  # Immediate deletion (cost saving)
-}
+# =============================================================================
+# Lambda Function (Container Image)
+# =============================================================================
 
-resource "aws_secretsmanager_secret_version" "etherscan_api_key" {
-  secret_id     = aws_secretsmanager_secret.etherscan_api_key.id
-  secret_string = var.etherscan_api_key
-}
+resource "aws_lambda_function" "app" {
+  function_name = local.function_name
+  role          = aws_iam_role.lambda_role.arn
+  package_type  = "Image"
+  image_uri     = "${aws_ecr_repository.app.repository_url}:latest"
+  timeout       = 300  # 5 minutes for LLM calls
+  memory_size   = 1024 # 1GB for faster cold starts
 
-# OpenRouter is optional - only create if provided
-resource "aws_secretsmanager_secret" "openrouter_api_key" {
-  count                   = var.openrouter_api_key != "" ? 1 : 0
-  name                    = "credit-scoring/openrouter-api-key"
-  recovery_window_in_days = 0
-}
-
-resource "aws_secretsmanager_secret_version" "openrouter_api_key" {
-  count         = var.openrouter_api_key != "" ? 1 : 0
-  secret_id     = aws_secretsmanager_secret.openrouter_api_key[0].id
-  secret_string = var.openrouter_api_key
-}
-
-resource "aws_secretsmanager_secret" "bedrock_bearer_token" {
-  name                    = "credit-scoring/bedrock-bearer-token"
-  recovery_window_in_days = 0
-}
-
-resource "aws_secretsmanager_secret_version" "bedrock_bearer_token" {
-  secret_id     = aws_secretsmanager_secret.bedrock_bearer_token.id
-  secret_string = var.bedrock_bearer_token
-}
-
-# ============================================
-# App Runner Service (Cost-Optimized)
-# ============================================
-resource "aws_apprunner_service" "app" {
-  service_name = "credit-scoring-app"
-
-  source_configuration {
-    authentication_configuration {
-      access_role_arn = aws_iam_role.apprunner_ecr_access.arn
+  environment {
+    variables = {
+      ENVIRONMENT        = "production"
+      LLM_PROVIDER       = "bedrock"
+      BEDROCK_MODEL_ID   = var.bedrock_model_id
+      BEDROCK_REGION     = var.bedrock_region
+      CONTEXT7_MCP_URL   = "https://mcp.context7.com/mcp"
+      CONTEXT7_API_KEY   = var.context7_api_key
+      LIGHTRAG_S3_BUCKET = aws_s3_bucket.lightrag_data.bucket
     }
-
-    image_repository {
-      image_configuration {
-        port = "8000"
-        
-        runtime_environment_variables = {
-          ENVIRONMENT      = "production"
-          LLM_PROVIDER     = "bedrock"
-          BEDROCK_MODEL_ID = var.bedrock_model_id
-          BEDROCK_REGION   = var.bedrock_region
-        }
-
-        runtime_environment_secrets = merge(
-          {
-            ETHERSCAN_API_KEY        = aws_secretsmanager_secret.etherscan_api_key.arn
-            AWS_BEARER_TOKEN_BEDROCK = aws_secretsmanager_secret.bedrock_bearer_token.arn
-          },
-          var.openrouter_api_key != "" ? {
-            OPENROUTER_API_KEY = aws_secretsmanager_secret.openrouter_api_key[0].arn
-          } : {}
-        )
-      }
-
-      image_identifier      = "${aws_ecr_repository.app.repository_url}:latest"
-      image_repository_type = "ECR"
-    }
-
-    auto_deployments_enabled = false  # Manual deployments via GitHub Actions
   }
 
-  instance_configuration {
-    # COST OPTIMIZATION: Smallest instance
-    cpu    = "256"   # 0.25 vCPU (minimum)
-    memory = "512"   # 0.5 GB (minimum)
-    
-    instance_role_arn = aws_iam_role.apprunner_instance.arn
-  }
-
-  # COST OPTIMIZATION: Scale to minimum
-  auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.cost_optimized.arn
-
-  health_check_configuration {
-    protocol            = "HTTP"
-    path                = "/api/health"
-    interval            = 20  # Longer interval = less health check overhead
-    timeout             = 5
-    healthy_threshold   = 1
-    unhealthy_threshold = 5
+  # Ignore image_uri changes (deploy separately)
+  lifecycle {
+    ignore_changes = [image_uri]
   }
 
   tags = {
-    Name        = "credit-scoring-app"
+    Name        = local.function_name
     Environment = "production"
     ManagedBy   = "terraform"
   }
 }
 
-# ============================================
-# Auto Scaling Configuration (Cost-Optimized)
-# ============================================
-resource "aws_apprunner_auto_scaling_configuration_version" "cost_optimized" {
-  auto_scaling_configuration_name = "cost-optimized"
+# =============================================================================
+# Lambda Function URL (Simpler than API Gateway)
+# =============================================================================
 
-  # COST OPTIMIZATION: Keep instances to minimum
-  min_size = 1  # Minimum 1 instance (can't go to 0)
-  max_size = 2  # Cap at 2 for unexpected traffic
+resource "aws_lambda_function_url" "app" {
+  function_name      = aws_lambda_function.app.function_name
+  authorization_type = "NONE"
 
-  max_concurrency = 100  # Requests per instance before scaling
-
-  tags = {
-    Name = "cost-optimized-scaling"
+  cors {
+    allow_origins     = ["*"]
+    allow_methods     = ["*"]
+    allow_headers     = ["*"]
+    max_age           = 86400
   }
 }
 
-# ============================================
+# =============================================================================
+# CloudWatch Log Group
+# =============================================================================
+
+resource "aws_cloudwatch_log_group" "lambda" {
+  name              = "/aws/lambda/${local.function_name}"
+  retention_in_days = 7  # Keep logs for 7 days only (cost saving)
+}
+
+# =============================================================================
+# Secrets Manager (Optional)
+# =============================================================================
+
+resource "aws_secretsmanager_secret" "context7_api_key" {
+  count                   = var.context7_api_key != "" ? 1 : 0
+  name                    = "tech-doc/context7-api-key"
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "context7_api_key" {
+  count         = var.context7_api_key != "" ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.context7_api_key[0].id
+  secret_string = var.context7_api_key
+}
+
+# =============================================================================
 # Outputs
-# ============================================
+# =============================================================================
+
 output "ecr_repository_url" {
   description = "ECR repository URL for Docker pushes"
   value       = aws_ecr_repository.app.repository_url
 }
 
-output "app_runner_service_url" {
-  description = "App Runner service URL"
-  value       = aws_apprunner_service.app.service_url
+output "lambda_function_url" {
+  description = "Lambda Function URL (Backend API)"
+  value       = aws_lambda_function_url.app.function_url
 }
 
-output "app_runner_service_arn" {
-  description = "App Runner service ARN for deployments"
-  value       = aws_apprunner_service.app.arn
+output "lambda_function_arn" {
+  description = "Lambda function ARN"
+  value       = aws_lambda_function.app.arn
 }
 
-output "app_runner_service_id" {
-  description = "App Runner service ID"
-  value       = aws_apprunner_service.app.service_id
+output "frontend_bucket_url" {
+  description = "S3 static website URL (Frontend)"
+  value       = "http://${aws_s3_bucket.frontend.bucket}.s3-website-${var.aws_region}.amazonaws.com"
 }
 
+output "frontend_bucket_name" {
+  description = "S3 bucket name for frontend deployment"
+  value       = aws_s3_bucket.frontend.bucket
+}
+
+output "lightrag_bucket_name" {
+  description = "S3 bucket for LightRAG graph index"
+  value       = aws_s3_bucket.lightrag_data.bucket
+}

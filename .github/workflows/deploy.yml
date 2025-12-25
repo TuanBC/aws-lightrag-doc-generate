@@ -1,18 +1,24 @@
-name: Deploy to AWS App Runner
+name: Deploy to AWS Lambda
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: 'Bootstrap mode - only build image, skip Lambda update'
+        required: false
+        default: 'false'
+        type: boolean
 
 env:
-  AWS_REGION: ap-southeast-2
-  ECR_REPOSITORY: credit-scoring-onchain
-  APP_RUNNER_SERVICE: credit-scoring-app
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: tech-doc-generator
+  LAMBDA_FUNCTION: tech-doc-generator
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy
+    name: Build and Deploy to Lambda
     runs-on: ubuntu-latest
     
     steps:
@@ -36,52 +42,41 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          # Build using Lambda Dockerfile
+          docker build -f Dockerfile.lambda -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "✅ Image pushed to ECR: $ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
-      - name: Deploy to App Runner
-        id: deploy
+      - name: Update Lambda function
+        if: ${{ github.event.inputs.bootstrap != 'true' }}
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Get the App Runner service ARN
-          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='${{ env.APP_RUNNER_SERVICE }}'].ServiceArn" --output text)
-          
-          if [ -z "$SERVICE_ARN" ]; then
-            echo "Error: App Runner service not found. Run 'terraform apply' first."
-            exit 1
-          fi
-          
-          echo "Deploying to App Runner service: $SERVICE_ARN"
-          
-          # Trigger deployment
-          aws apprunner start-deployment --service-arn $SERVICE_ARN
-          
-          echo "service_arn=$SERVICE_ARN" >> $GITHUB_OUTPUT
-
-      - name: Wait for deployment
-        run: |
-          echo "Waiting for deployment to complete..."
-          
-          # Poll for deployment status
-          for i in {1..30}; do
-            STATUS=$(aws apprunner describe-service --service-arn ${{ steps.deploy.outputs.service_arn }} --query "Service.Status" --output text)
-            echo "Status: $STATUS"
+          # Check if Lambda function exists
+          if aws lambda get-function --function-name ${{ env.LAMBDA_FUNCTION }} 2>/dev/null; then
+            echo "Updating Lambda function..."
+            aws lambda update-function-code \
+              --function-name ${{ env.LAMBDA_FUNCTION }} \
+              --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
             
-            if [ "$STATUS" = "RUNNING" ]; then
-              echo "Deployment successful!"
-              break
-            elif [ "$STATUS" = "OPERATION_IN_PROGRESS" ]; then
-              echo "Deployment in progress... waiting 20s"
-              sleep 20
-            else
-              echo "Unexpected status: $STATUS"
-              sleep 10
-            fi
-          done
+            echo "Waiting for Lambda update to complete..."
+            aws lambda wait function-updated --function-name ${{ env.LAMBDA_FUNCTION }}
+            echo "✅ Lambda function updated successfully!"
+          else
+            echo "⚠️ Lambda function does not exist yet. Run 'terraform apply' to create it."
+            echo "The image has been pushed to ECR and is ready for Terraform."
+          fi
 
-      - name: Output service URL
+      - name: Get Lambda Function URL
+        if: ${{ github.event.inputs.bootstrap != 'true' }}
         run: |
-          SERVICE_URL=$(aws apprunner describe-service --service-arn ${{ steps.deploy.outputs.service_arn }} --query "Service.ServiceUrl" --output text)
-          echo "🚀 Deployed to: https://$SERVICE_URL"
+          if aws lambda get-function --function-name ${{ env.LAMBDA_FUNCTION }} 2>/dev/null; then
+            FUNCTION_URL=$(aws lambda get-function-url-config \
+              --function-name ${{ env.LAMBDA_FUNCTION }} \
+              --query "FunctionUrl" --output text 2>/dev/null || echo "No function URL")
+            echo "🚀 Lambda Function URL: $FUNCTION_URL"
+          fi

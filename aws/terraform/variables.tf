@@ -1,37 +1,47 @@
+# =============================================================================
+# Variables for Technical Document Generator Infrastructure (LITE)
+# =============================================================================
+
 variable "aws_region" {
-  description = "AWS region"
+  description = "AWS region for all resources"
   type        = string
-  default     = "ap-southeast-2"
+  default     = "us-east-1"
 }
 
-variable "etherscan_api_key" {
-  description = "Etherscan API key"
-  type        = string
-  sensitive   = true
-}
+# =============================================================================
+# Context7 Configuration
+# =============================================================================
 
-variable "openrouter_api_key" {
-  description = "OpenRouter API key (optional)"
+variable "context7_api_key" {
+  description = "Context7 API key for higher rate limits (optional)"
   type        = string
   sensitive   = true
   default     = ""
 }
 
-variable "bedrock_bearer_token" {
-  description = "AWS Bedrock Bearer Token for LLM access"
-  type        = string
-  sensitive   = true
-}
+# =============================================================================
+# Bedrock Configuration
+# =============================================================================
 
 variable "bedrock_model_id" {
-  description = "AWS Bedrock Model ID"
+  description = "AWS Bedrock Chat Model ID"
   type        = string
   default     = "amazon.nova-pro-v1:0"
 }
 
 variable "bedrock_region" {
-  description = "AWS Bedrock region"
+  description = "AWS Bedrock region (may differ from main region)"
   type        = string
-  default     = "ap-southeast-2"
+  default     = "us-east-1"
 }
 
+# =============================================================================
+# Optional: OpenRouter (fallback LLM)
+# =============================================================================
+
+variable "openrouter_api_key" {
+  description = "OpenRouter API key (optional, for fallback LLM)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

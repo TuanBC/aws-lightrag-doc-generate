@@ -1,61 +1,332 @@
-"""JSON API routes for credit scoring."""
+"""JSON API routes for technical document generation."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse
 
-from app.dependencies import (
-    get_scoring_engine,
-    require_report_service,
+from app.schemas import (
+    CriticReportResponse,
+    GeneratedDocumentResponse,
+    GenerateDocumentRequest,
+    HealthResponse,
+    UploadDocumentRequest,
+    UploadDocumentResponse,
+    ValidateDocumentRequest,
+    ValidationIssue,
+    ValidationResultResponse,
+    ValidationSeverity,
 )
-from app.schemas import ScoreResponse
-from app.services.reporting import WalletReportService
-from app.services.scoring_engine import ScoringEngine
+from app.services.critic_agent import CriticAgent
+from app.services.document_generator import (
+    DocumentGenerationError,
+    DocumentGenerator,
+    DocumentType,
+)
+from app.services.knowledge_base_service import KnowledgeBaseError, KnowledgeBaseService
+
+router = APIRouter(tags=["Document Generation API"])
 
 
-router = APIRouter(tags=["Credit Scoring API"])
+# =============================================================================
+# Health Check
+# =============================================================================
 
 
-@router.get("/health")
-async def health() -> dict:
+@router.get("/health", response_model=HealthResponse)
+async def health() -> HealthResponse:
     """Basic liveness probe."""
-    return {"status": "healthy", "service": "credit-scoring-web"}
+    return HealthResponse()
 
 
-@router.get(
-    "/v1/wallets/{wallet_address}/score",
-    response_model=ScoreResponse,
-    summary="Fetch credit score for a wallet",
+# =============================================================================
+# Document Generation
+# =============================================================================
+
+
+@router.post(
+    "/v1/documents/generate",
+    response_model=GeneratedDocumentResponse,
+    summary="Generate a technical document",
 )
-async def get_wallet_score(
-    wallet_address: str = Path(
-        ..., description="Checksum or lowercase Ethereum address"
-    ),
-    scoring_engine: ScoringEngine = Depends(get_scoring_engine),
-) -> ScoreResponse:
-    """Return the on-chain credit score for the requested wallet."""
-    result = await scoring_engine.evaluate_wallet(wallet_address)
-    return ScoreResponse(**result.as_payload())
+async def generate_document(
+    request: GenerateDocumentRequest,
+) -> GeneratedDocumentResponse:
+    """
+    Generate a technical document using Context7 and Knowledge Base context.
 
+    Supported document types:
+    - srs: Software Requirements Specification
+    - functional_spec: Functional Specification
+    - api_docs: API Documentation
+    - architecture: Architecture Document
+    """
+    try:
+        generator = DocumentGenerator()
+        doc_type = DocumentType(request.document_type.value)
 
-@router.get(
-    "/v1/wallets/{wallet_address}/report/markdown",
-    response_class=PlainTextResponse,
-    summary="Generate raw Markdown credit report",
-)
-async def get_wallet_report_markdown(
-    wallet_address: str = Path(
-        ..., description="Checksum or lowercase Ethereum address"
-    ),
-    scoring_engine: ScoringEngine = Depends(get_scoring_engine),
-    report_service: WalletReportService = Depends(require_report_service),
-) -> str:
-    """Generate an LLM-backed markdown report for the wallet (raw markdown)."""
-    result = await scoring_engine.evaluate_wallet(wallet_address)
-    if not result.onchain_features:
-        raise HTTPException(
-            status_code=404,
-            detail="Unable to generate report without transaction history",
+        result = await generator.generate(
+            document_type=doc_type,
+            library_name=request.library_name,
+            requirements=request.requirements,
+            topics=request.topics,
+            additional_context=request.additional_context,
         )
-    return await report_service.generate_markdown_report(result)
+
+        return GeneratedDocumentResponse(
+            document_type=request.document_type,
+            title=result.title,
+            content=result.content,
+            library_name=result.library_name,
+            topics=result.topics,
+            generated_at=result.generated_at,
+            metadata=result.metadata,
+        )
+
+    except DocumentGenerationError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+
+
+@router.post(
+    "/v1/documents/generate/markdown",
+    response_class=PlainTextResponse,
+    summary="Generate document and return raw markdown",
+)
+async def generate_document_markdown(
+    request: GenerateDocumentRequest,
+) -> str:
+    """Generate a document and return raw markdown content."""
+    try:
+        generator = DocumentGenerator()
+        doc_type = DocumentType(request.document_type.value)
+
+        result = await generator.generate(
+            document_type=doc_type,
+            library_name=request.library_name,
+            requirements=request.requirements,
+            topics=request.topics,
+            additional_context=request.additional_context,
+        )
+
+        return result.content
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Document Validation
+# =============================================================================
+
+
+@router.post(
+    "/v1/documents/validate",
+    response_model=CriticReportResponse,
+    summary="Validate a document for syntax and quality",
+)
+async def validate_document(
+    request: ValidateDocumentRequest,
+) -> CriticReportResponse:
+    """
+    Validate document markdown syntax, mermaid charts, and content quality.
+
+    Returns a detailed critic report with issues and suggestions.
+    """
+    try:
+        critic = CriticAgent()
+        report = await critic.full_review(
+            content=request.content,
+            requirements=request.requirements,
+            check_content=request.check_content,
+        )
+
+        def convert_result(result) -> ValidationResultResponse:
+            return ValidationResultResponse(
+                passed=result.passed,
+                issues=[
+                    ValidationIssue(
+                        severity=ValidationSeverity(i.severity.value),
+                        category=i.category,
+                        message=i.message,
+                        line_number=i.line_number,
+                        suggestion=i.suggestion,
+                    )
+                    for i in result.issues
+                ],
+                checked_items=result.checked_items,
+            )
+
+        return CriticReportResponse(
+            overall_passed=report.overall_passed,
+            markdown_result=convert_result(report.markdown_result),
+            mermaid_result=convert_result(report.mermaid_result),
+            content_result=convert_result(report.content_result) if report.content_result else None,
+            total_errors=report.total_errors,
+            total_warnings=report.total_warnings,
+            suggestions=report.suggestions,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
+
+
+@router.post(
+    "/v1/documents/validate/markdown",
+    response_model=ValidationResultResponse,
+    summary="Validate markdown syntax only",
+)
+async def validate_markdown(
+    request: ValidateDocumentRequest,
+) -> ValidationResultResponse:
+    """Quick markdown syntax validation without LLM check."""
+    critic = CriticAgent()
+    result = critic.validate_markdown_syntax(request.content)
+
+    return ValidationResultResponse(
+        passed=result.passed,
+        issues=[
+            ValidationIssue(
+                severity=ValidationSeverity(i.severity.value),
+                category=i.category,
+                message=i.message,
+                line_number=i.line_number,
+                suggestion=i.suggestion,
+            )
+            for i in result.issues
+        ],
+        checked_items=result.checked_items,
+    )
+
+
+@router.post(
+    "/v1/documents/validate/mermaid",
+    response_model=ValidationResultResponse,
+    summary="Validate mermaid chart syntax only",
+)
+async def validate_mermaid(
+    request: ValidateDocumentRequest,
+) -> ValidationResultResponse:
+    """Quick mermaid syntax validation."""
+    critic = CriticAgent()
+    result = critic.validate_mermaid_charts(request.content)
+
+    return ValidationResultResponse(
+        passed=result.passed,
+        issues=[
+            ValidationIssue(
+                severity=ValidationSeverity(i.severity.value),
+                category=i.category,
+                message=i.message,
+                line_number=i.line_number,
+                suggestion=i.suggestion,
+            )
+            for i in result.issues
+        ],
+        checked_items=result.checked_items,
+    )
+
+
+# =============================================================================
+# Knowledge Base Upload
+# =============================================================================
+
+
+@router.post(
+    "/v1/documents/upload",
+    response_model=UploadDocumentResponse,
+    summary="Upload document to Knowledge Base",
+)
+async def upload_document(
+    request: UploadDocumentRequest,
+) -> UploadDocumentResponse:
+    """
+    Upload a document to S3 for Knowledge Base ingestion.
+
+    Note: After upload, a KB sync must be triggered to ingest the document.
+    """
+    try:
+        kb_service = KnowledgeBaseService()
+        result = await kb_service.upload_document(
+            content=request.content,
+            filename=request.filename,
+            metadata=request.metadata,
+        )
+
+        return UploadDocumentResponse(
+            document_id=result.document_id,
+            s3_uri=result.s3_uri,
+        )
+
+    except KnowledgeBaseError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+# =============================================================================
+# LightRAG Graph-based RAG
+# =============================================================================
+
+
+@router.post(
+    "/v1/lightrag/index",
+    summary="Index document in LightRAG",
+)
+async def lightrag_index(
+    content: str,
+    doc_id: str | None = None,
+):
+    """
+    Index a document in LightRAG for graph-based retrieval.
+
+    Extracts entities and relationships, stores in S3.
+    """
+    try:
+        from app.services.lightrag_service import LightRAGService
+
+        service = LightRAGService()
+        result = await service.insert(content, doc_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Indexing failed: {str(e)}")
+
+
+@router.get(
+    "/v1/lightrag/query",
+    summary="Query LightRAG knowledge graph",
+)
+async def lightrag_query(
+    query: str,
+    mode: str = "hybrid",
+    top_k: int = 5,
+):
+    """
+    Query the LightRAG knowledge graph.
+
+    Modes: local, global, hybrid
+    """
+    try:
+        from app.services.lightrag_service import LightRAGService
+
+        service = LightRAGService()
+        context = await service.query(query, mode=mode, top_k=top_k)
+        return {"query": query, "mode": mode, "context": context}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+@router.get(
+    "/v1/lightrag/stats",
+    summary="Get LightRAG index statistics",
+)
+async def lightrag_stats():
+    """Get statistics about the LightRAG index."""
+    try:
+        from app.services.lightrag_service import LightRAGService
+
+        service = LightRAGService()
+        return await service.get_stats()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stats failed: {str(e)}")

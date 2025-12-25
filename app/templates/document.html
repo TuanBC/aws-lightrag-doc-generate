@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="document-header">
+    <div class="document-title">
+        <h1>{{ document.title }}</h1>
+        <span class="badge badge-{{ document.document_type.value }}">{{ document.document_type.value | upper }}</span>
+    </div>
+    <div class="document-meta">
+        <span>Generated: {{ document.generated_at }}</span>
+        {% if document.library_name %}
+        <span>Library: {{ document.library_name }}</span>
+        {% endif %}
+    </div>
+</div>
+
+{% if validation %}
+<div
+    class="validation-summary {% if validation.overall_passed %}validation-passed{% else %}validation-failed{% endif %}">
+    <div class="validation-header">
+        <span class="validation-icon">{% if validation.overall_passed %}✅{% else %}⚠️{% endif %}</span>
+        <span>Validation: {% if validation.overall_passed %}Passed{% else %}{{ validation.total_errors }} errors, {{
+            validation.total_warnings }} warnings{% endif %}</span>
+    </div>
+    {% if validation.suggestions %}
+    <div class="validation-suggestions">
+        <strong>Suggestions:</strong>
+        <ul>
+            {% for suggestion in validation.suggestions[:3] %}
+            <li>{{ suggestion }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="document-actions">
+    <button onclick="copyToClipboard()" class="btn btn-secondary">📋 Copy Markdown</button>
+    <a href="/" class="btn btn-outline">← Generate Another</a>
+</div>
+
+<div class="document-content">
+    <div class="markdown-body" id="document-content">
+        {{ document.content | safe }}
+    </div>
+</div>
+
+<div class="document-raw">
+    <details>
+        <summary>View Raw Markdown</summary>
+        <pre><code id="raw-markdown">{{ document.content }}</code></pre>
+    </details>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    // Render markdown content
+    document.addEventListener('DOMContentLoaded', function () {
+        const content = document.getElementById('document-content');
+        const rawContent = document.getElementById('raw-markdown').textContent;
+
+        // Configure marked
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            highlight: function (code, lang) {
+                return code;
+            }
+        });
+
+        // Render markdown
+        content.innerHTML = marked.parse(rawContent);
+
+        // Re-init mermaid for dynamically added content
+        if (typeof mermaid !== 'undefined') {
+            mermaid.init(undefined, '.mermaid');
+        }
+    });
+
+    function copyToClipboard() {
+        const rawContent = document.getElementById('raw-markdown').textContent;
+        navigator.clipboard.writeText(rawContent).then(() => {
+            alert('Markdown copied to clipboard!');
+        });
+    }
+</script>
+{% endblock %}

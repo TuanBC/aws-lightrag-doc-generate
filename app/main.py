@@ -1,4 +1,4 @@
-"""FastAPI application factory for the web app."""
+"""FastAPI application factory for Technical Document Generator."""
 
 from __future__ import annotations
 
@@ -19,7 +19,14 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version="1.0.0",
-        summary="Stateless monolith for on-chain credit scoring",
+        summary="AI-powered Technical Document Generator",
+        description="""
+Generate technical documentation (SRS, Functional Specs) with:
+- Context7 MCP integration for live library docs
+- Amazon Bedrock Knowledge Base for RAG
+- Mermaid diagram generation
+- Built-in validation and critic agent
+        """,
     )
 
     app.include_router(web_router)

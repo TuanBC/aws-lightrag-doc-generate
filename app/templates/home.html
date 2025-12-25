@@ -1,276 +1,79 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="hero">
-  <div class="container">
-    <div class="hero-content">
-      <div class="hero-badge">
-        <i class="fab fa-ethereum"></i>
-        <span>Ethereum Blockchain Analytics</span>
-      </div>
-      <h1 class="hero-title">
-        Assess Wallet <span class="text-gradient">Creditworthiness</span> Instantly
-      </h1>
-      <p class="hero-description">
-        Enter any Ethereum address to generate a comprehensive credit score with 
-        feature-level transparency, powered by real-time blockchain data.
-      </p>
+<div class="hero">
+    <h1>Generate Technical Documents</h1>
+    <p class="hero-subtitle">Create SRS, Functional Specs, and more with AI-powered assistance</p>
+</div>
 
-      <!-- Search Form -->
-      <form method="post" action="/scores" class="search-form" id="scoreForm" onsubmit="return handleFormSubmit(this)">
-        <div class="search-input-wrapper">
-          <i class="fas fa-search search-icon"></i>
-          <input
-            type="text"
-            id="wallet_address"
-            name="wallet_address"
-            class="search-input"
-            placeholder="Enter Ethereum address (0x...)"
-            minlength="42"
-            maxlength="42"
-            autocomplete="off"
-            spellcheck="false"
-            required
-          />
-          <button type="submit" class="search-button" id="submitBtn">
-            <span class="btn-text">Analyze</span>
-            <span class="btn-loading">
-              <i class="fas fa-spinner fa-spin"></i>
-            </span>
-          </button>
-        </div>
-        <div class="search-feedback" id="searchFeedback">
-          {% if message %}
-          <div class="alert alert-error">
-            <i class="fas fa-exclamation-circle"></i>
-            <span>{{ message }}</span>
-          </div>
-          {% endif %}
-        </div>
-        <div class="search-hint">
-          <i class="fas fa-info-circle"></i>
-          <span>Enter a valid 42-character Ethereum address starting with 0x</span>
-        </div>
-      </form>
-      <script>
-        // Immediate double-submit prevention
-        var formSubmitted = false;
-        function handleFormSubmit(form) {
-          if (formSubmitted) {
-            console.log('Form already submitted, blocking');
-            return false;
-          }
-          formSubmitted = true;
-          var btn = form.querySelector('#submitBtn');
-          if (btn) {
-            btn.disabled = true;
-            btn.classList.add('loading');
-          }
-          return true;
-        }
-      </script>
+{% if error %}
+<div class="alert alert-error">
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h2>📝 New Document</h2>
     </div>
-
-    <!-- Hero Visual -->
-    <div class="hero-visual">
-      <div class="hero-card-stack">
-        <div class="floating-card card-1">
-          <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
-          <div class="card-content">
-            <span class="card-value">850</span>
-            <span class="card-label">Credit Score</span>
-          </div>
-        </div>
-        <div class="floating-card card-2">
-          <div class="card-icon"><i class="fas fa-exchange-alt"></i></div>
-          <div class="card-content">
-            <span class="card-value">1,247</span>
-            <span class="card-label">Transactions</span>
-          </div>
-        </div>
-        <div class="floating-card card-3">
-          <div class="card-icon"><i class="fas fa-clock"></i></div>
-          <div class="card-content">
-            <span class="card-value">365</span>
-            <span class="card-label">Days Active</span>
-          </div>
-        </div>
-      </div>
+    <div class="card-body">
+        <form action="/generate" method="POST" class="form">
+            <div class="form-group">
+                <label for="document_type">Document Type</label>
+                <select name="document_type" id="document_type" required class="form-control">
+                    {% for dt in document_types %}
+                    <option value="{{ dt.value }}">{{ dt.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="library_name">Library/Framework Name</label>
+                <input type="text" name="library_name" id="library_name" 
+                       class="form-control" 
+                       placeholder="e.g., react, fastapi, next.js">
+                <small class="form-hint">Leave empty for general documentation</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="requirements">Requirements / Description</label>
+                <textarea name="requirements" id="requirements" 
+                          class="form-control" rows="6"
+                          placeholder="Describe the system, features, or requirements..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="topics">Focus Topics (comma-separated)</label>
+                <input type="text" name="topics" id="topics" 
+                       class="form-control"
+                       placeholder="e.g., authentication, routing, database">
+                <small class="form-hint">Specific topics to include in the document</small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    🚀 Generate Document
+                </button>
+            </div>
+        </form>
     </div>
-  </div>
-</section>
+</div>
 
-<!-- Stats Section -->
-<section class="stats-section">
-  <div class="container">
-    <div class="stats-grid">
-      <div class="stat-item">
-        <div class="stat-icon">
-          <i class="fas fa-chart-pie"></i>
-        </div>
-        <div class="stat-info">
-          <span class="stat-value" data-count="1000">0-1000</span>
-          <span class="stat-label">Score Range</span>
-        </div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-icon">
-          <i class="fas fa-database"></i>
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">15+</span>
-          <span class="stat-label">On-chain Features</span>
-        </div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-icon">
-          <i class="fas fa-bolt"></i>
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">&lt;3s</span>
-          <span class="stat-label">Analysis Time</span>
-        </div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-icon">
-          <i class="fas fa-lock"></i>
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">100%</span>
-          <span class="stat-label">Privacy Safe</span>
-        </div>
-      </div>
+<div class="features">
+    <div class="feature-card">
+        <div class="feature-icon">📚</div>
+        <h3>Context7 Integration</h3>
+        <p>Fetches up-to-date library documentation automatically</p>
     </div>
-  </div>
-</section>
-
-<!-- Features Section -->
-<section class="features-section">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-badge">Features</span>
-      <h2 class="section-title">Why Choose OnChain Credit?</h2>
-      <p class="section-description">
-        Our platform leverages cutting-edge blockchain analytics to provide accurate, 
-        transparent, and comprehensive credit assessments.
-      </p>
+    <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>Mermaid Diagrams</h3>
+        <p>Generates sequence, flow, and architecture diagrams</p>
     </div>
-
-    <div class="features-grid">
-      <!-- Feature 1 -->
-      <div class="feature-card">
-        <div class="feature-icon">
-          <i class="fas fa-cubes"></i>
-        </div>
-        <h3 class="feature-title">On-Chain Analysis</h3>
-        <p class="feature-description">
-          Analyze transaction history, account age, counterparty diversity, and 
-          balance changes directly from the Ethereum blockchain.
-        </p>
-        <ul class="feature-list">
-          <li><i class="fas fa-check"></i> Transaction volume analysis</li>
-          <li><i class="fas fa-check"></i> Account age calculation</li>
-          <li><i class="fas fa-check"></i> Network activity metrics</li>
-        </ul>
-      </div>
-
-      <!-- Feature 2 -->
-      <div class="feature-card">
-        <div class="feature-icon">
-          <i class="fas fa-user-tag"></i>
-        </div>
-        <h3 class="feature-title">Synthetic Personas</h3>
-        <p class="feature-description">
-          Combine on-chain data with synthetic off-chain personas for richer 
-          insights and more comprehensive credit modeling.
-        </p>
-        <ul class="feature-list">
-          <li><i class="fas fa-check"></i> Behavioral profiling</li>
-          <li><i class="fas fa-check"></i> Risk categorization</li>
-          <li><i class="fas fa-check"></i> Persona matching</li>
-        </ul>
-      </div>
-
-      <!-- Feature 3 -->
-      <div class="feature-card">
-        <div class="feature-icon">
-          <i class="fas fa-file-alt"></i>
-        </div>
-        <h3 class="feature-title">Detailed Reports</h3>
-        <p class="feature-description">
-          Generate comprehensive markdown reports with detailed breakdowns of 
-          all scoring factors and recommendations.
-        </p>
-        <ul class="feature-list">
-          <li><i class="fas fa-check"></i> Exportable reports</li>
-          <li><i class="fas fa-check"></i> Feature breakdown</li>
-          <li><i class="fas fa-check"></i> AI-powered insights</li>
-        </ul>
-      </div>
+    <div class="feature-card">
+        <div class="feature-icon">✅</div>
+        <h3>Built-in Validation</h3>
+        <p>Automatic syntax and quality checking</p>
     </div>
-  </div>
-</section>
-
-<!-- How It Works Section -->
-<section class="how-it-works-section">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-badge">Process</span>
-      <h2 class="section-title">How It Works</h2>
-    </div>
-
-    <div class="steps-grid">
-      <div class="step-card">
-        <div class="step-number">1</div>
-        <div class="step-icon"><i class="fas fa-wallet"></i></div>
-        <h3 class="step-title">Enter Address</h3>
-        <p class="step-description">
-          Input any valid Ethereum wallet address to begin the analysis process.
-        </p>
-      </div>
-
-      <div class="step-connector"><i class="fas fa-arrow-right"></i></div>
-
-      <div class="step-card">
-        <div class="step-number">2</div>
-        <div class="step-icon"><i class="fas fa-cogs"></i></div>
-        <h3 class="step-title">Data Processing</h3>
-        <p class="step-description">
-          Our engine fetches and analyzes transaction history from Etherscan.
-        </p>
-      </div>
-
-      <div class="step-connector"><i class="fas fa-arrow-right"></i></div>
-
-      <div class="step-card">
-        <div class="step-number">3</div>
-        <div class="step-icon"><i class="fas fa-chart-bar"></i></div>
-        <h3 class="step-title">Score Generation</h3>
-        <p class="step-description">
-          Receive a comprehensive credit score with detailed feature breakdown.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA Section -->
-<section class="cta-section">
-  <div class="container">
-    <div class="cta-card">
-      <div class="cta-content">
-        <h2 class="cta-title">Ready to Analyze Your First Wallet?</h2>
-        <p class="cta-description">
-          Start exploring the creditworthiness of any Ethereum address today.
-        </p>
-      </div>
-      <a href="#wallet_address" class="cta-button" onclick="document.getElementById('wallet_address').focus(); return false;">
-        <i class="fas fa-rocket"></i>
-        Get Started Now
-      </a>
-    </div>
-  </div>
-</section>
+</div>
 {% endblock %}
-

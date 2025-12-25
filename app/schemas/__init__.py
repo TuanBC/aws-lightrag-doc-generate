@@ -1,5 +1,31 @@
-"""Pydantic schemas for API and UI."""
+"""Pydantic schema exports."""
 
-from .score import ScoreRequest, ScoreResponse, ScoreBreakdown
+from .documents import (
+    CriticReportResponse,
+    DocumentType,
+    ErrorResponse,
+    GeneratedDocumentResponse,
+    GenerateDocumentRequest,
+    HealthResponse,
+    UploadDocumentRequest,
+    UploadDocumentResponse,
+    ValidateDocumentRequest,
+    ValidationIssue,
+    ValidationResultResponse,
+    ValidationSeverity,
+)
 
-__all__ = ["ScoreRequest", "ScoreResponse", "ScoreBreakdown"]
+__all__ = [
+    "DocumentType",
+    "ValidationSeverity",
+    "GenerateDocumentRequest",
+    "ValidateDocumentRequest",
+    "UploadDocumentRequest",
+    "ValidationIssue",
+    "ValidationResultResponse",
+    "CriticReportResponse",
+    "GeneratedDocumentResponse",
+    "UploadDocumentResponse",
+    "HealthResponse",
+    "ErrorResponse",
+]
