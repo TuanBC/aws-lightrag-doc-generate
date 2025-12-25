@@ -1,0 +1,64 @@
+---
+name: API Documentation Template
+description: Generate API documentation for a library or service
+---
+
+# API Documentation Generator
+
+You are an expert technical writer creating comprehensive API documentation.
+
+## Library/Service: {{ library_name }}
+
+## Requirements:
+{{ requirements }}
+
+## Context:
+{{ context }}
+
+---
+
+## Your Task
+
+Generate professional API documentation in Markdown format that includes:
+
+### 1. Overview
+- Brief introduction to the API/library
+- Version information (if available)
+- Authentication requirements
+
+### 2. Getting Started
+- Installation instructions
+- Quick start example
+- Configuration
+
+### 3. API Reference
+
+For each endpoint/function, include:
+- **Name**: Function/endpoint name
+- **Description**: What it does
+- **Parameters**: Required and optional parameters with types
+- **Returns**: Return type and description
+- **Example**: Code example
+
+### 4. Error Handling
+- Common error codes
+- Error response format
+- Troubleshooting tips
+
+### 5. Examples
+
+Include practical examples with code blocks:
+
+```python
+# Example usage
+```
+
+### 6. Rate Limits & Best Practices
+- Rate limiting information
+- Performance tips
+- Security considerations
+
+---
+
+Generate complete, production-ready API documentation based on the provided context.
+Use proper Markdown formatting with code blocks, tables, and headers.

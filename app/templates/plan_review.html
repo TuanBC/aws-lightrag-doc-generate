@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Review Document Plan - {{ plan.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <header class="page-header">
+        <h1>📋 Review Document Plan</h1>
+        <p class="subtitle">Review and refine the document structure before generation</p>
+    </header>
+
+    <div class="plan-meta">
+        <span class="badge badge-{{ plan.status }}">{{ plan.status }}</span>
+        <span class="plan-type">{{ plan.document_type }}</span>
+        <span class="plan-id">ID: {{ plan.plan_id[:8] }}...</span>
+    </div>
+
+    <section class="card">
+        <h2>📝 Your Request</h2>
+        <blockquote class="user-request">
+            {{ plan.user_request }}
+        </blockquote>
+    </section>
+
+    <section class="card outline-section">
+        <h2>📑 Proposed Outline: {{ plan.title }}</h2>
+
+        <div class="outline-tree">
+            {% for section in plan.sections %}
+            <div class="outline-item">
+                <div class="section-header">
+                    <span class="section-number">{{ loop.index }}</span>
+                    <h3>{{ section.title }}</h3>
+                    <span class="length-badge {{ section.estimated_length }}">{{ section.estimated_length }}</span>
+                </div>
+                <p class="section-description">{{ section.description }}</p>
+                {% if section.subsections %}
+                <ul class="subsections">
+                    {% for sub in section.subsections %}
+                    <li>{{ sub }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if plan.user_comments %}
+    <section class="card comments-section">
+        <h2>💬 Your Feedback</h2>
+        <ul class="comments-list">
+            {% for comment in plan.user_comments %}
+            <li class="comment">{{ comment }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    {% if plan.status == 'pending_review' %}
+    <section class="card action-section">
+        <h2>✏️ Add Feedback</h2>
+        <form id="comment-form" action="/plan/{{ plan.plan_id }}/comment" method="POST">
+            <textarea name="comment"
+                placeholder="Suggest changes to the outline... (e.g., 'Add a section about error handling', 'Remove the security section')"
+                rows="3" required></textarea>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-secondary">
+                    💬 Refine Outline
+                </button>
+            </div>
+        </form>
+
+        <div class="divider"></div>
+
+        <form id="approve-form" action="/plan/{{ plan.plan_id }}/approve" method="POST">
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large">
+                    ✅ Approve & Generate Document
+                </button>
+            </div>
+        </form>
+    </section>
+    {% endif %}
+
+    {% if plan.status == 'approved' %}
+    <section class="card action-section">
+        <div class="status-message success">
+            <h3>✅ Plan Approved!</h3>
+            <p>Click below to generate the full document.</p>
+        </div>
+        <form id="generate-form" action="/plan/{{ plan.plan_id }}/generate" method="POST">
+            <button type="submit" class="btn btn-primary btn-large">
+                🚀 Generate Document
+            </button>
+        </form>
+    </section>
+    {% endif %}
+
+    {% if plan.status == 'generating' %}
+    <section class="card action-section">
+        <div class="status-message loading">
+            <div class="spinner"></div>
+            <h3>Generating Document...</h3>
+            <p>This may take a minute. Please wait.</p>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if plan.status == 'completed' and plan.final_document %}
+    <section class="card document-section">
+        <h2>📄 Generated Document</h2>
+        <div class="document-actions">
+            <a href="/plan/{{ plan.plan_id }}/download" class="btn btn-secondary">
+                ⬇️ Download Markdown
+            </a>
+            <button onclick="copyDocument()" class="btn btn-secondary">
+                📋 Copy to Clipboard
+            </button>
+        </div>
+        <div class="document-preview" id="document-content">
+            {{ plan.final_document | safe }}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if plan.status == 'failed' %}
+    <section class="card action-section">
+        <div class="status-message error">
+            <h3>❌ Generation Failed</h3>
+            <p>{{ plan.metadata.error if plan.metadata else 'An error occurred during generation.' }}</p>
+        </div>
+        <a href="/plan/new" class="btn btn-secondary">Start Over</a>
+    </section>
+    {% endif %}
+
+    <div class="back-link">
+        <a href="/">← Back to Home</a>
+    </div>
+</div>
+
+<style>
+    .plan-meta {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        align-items: center;
+    }
+
+    .badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .badge-pending_review {
+        background: #f0ad4e;
+        color: #000;
+    }
+
+    .badge-approved {
+        background: #5cb85c;
+        color: #fff;
+    }
+
+    .badge-generating {
+        background: #5bc0de;
+        color: #fff;
+    }
+
+    .badge-completed {
+        background: #0275d8;
+        color: #fff;
+    }
+
+    .badge-failed {
+        background: #d9534f;
+        color: #fff;
+    }
+
+    .user-request {
+        background: var(--surface);
+        border-left: 4px solid var(--primary);
+        padding: 1rem 1.5rem;
+        margin: 0;
+        font-style: italic;
+    }
+
+    .outline-tree {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .outline-item {
+        background: var(--surface);
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        border: 1px solid var(--border);
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .section-number {
+        background: var(--primary);
+        color: #fff;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .section-header h3 {
+        margin: 0;
+        flex: 1;
+    }
+
+    .length-badge {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        background: var(--surface-light);
+    }
+
+    .length-badge.short {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .length-badge.medium {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .length-badge.long {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .section-description {
+        color: var(--text-secondary);
+        margin: 0.5rem 0;
+        font-size: 0.95rem;
+    }
+
+    .subsections {
+        margin: 0.5rem 0 0 2rem;
+        color: var(--text-secondary);
+    }
+
+    .subsections li {
+        margin: 0.25rem 0;
+    }
+
+    .comments-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .comment {
+        background: var(--surface);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        border-left: 3px solid var(--primary);
+    }
+
+    .action-section textarea {
+        width: 100%;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        font-family: inherit;
+        resize: vertical;
+    }
+
+    .divider {
+        border-top: 1px solid var(--border);
+        margin: 1.5rem 0;
+    }
+
+    .form-actions {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+
+    .btn-large {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+    }
+
+    .status-message {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .status-message.success {
+        color: #5cb85c;
+    }
+
+    .status-message.loading {
+        color: var(--primary);
+    }
+
+    .status-message.error {
+        color: #d9534f;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .document-preview {
+        background: var(--surface);
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        max-height: 500px;
+        overflow-y: auto;
+        font-family: monospace;
+        white-space: pre-wrap;
+    }
+
+    .document-actions {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .back-link {
+        margin-top: 2rem;
+        text-align: center;
+    }
+</style>
+
+<script>
+    function copyDocument() {
+        const content = document.getElementById('document-content').innerText;
+        navigator.clipboard.writeText(content).then(() => {
+            alert('Document copied to clipboard!');
+        });
+    }
+</script>
+{% endblock %}

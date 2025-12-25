@@ -160,3 +160,63 @@ class ErrorResponse(BaseModel):
 
     error: str
     detail: Optional[str] = None
+
+
+# =============================================================================
+# Planning Agent Models
+# =============================================================================
+
+
+class PlanStatus(str, Enum):
+    """Status of a document plan."""
+
+    PENDING_REVIEW = "pending_review"
+    APPROVED = "approved"
+    GENERATING = "generating"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class SectionOutlineSchema(BaseModel):
+    """A section in the document outline."""
+
+    title: str
+    description: str
+    subsections: List[str] = Field(default_factory=list)
+    estimated_length: str = "medium"
+
+
+class CreatePlanRequest(BaseModel):
+    """Request to create a new document plan."""
+
+    user_request: str = Field(
+        ...,
+        description="Free-form user request describing what document they need",
+        min_length=10,
+        examples=["Create an API documentation for a REST payment service"],
+    )
+
+
+class AddCommentRequest(BaseModel):
+    """Request to add a comment to a plan."""
+
+    comment: str = Field(
+        ...,
+        description="User feedback or comment on the outline",
+        min_length=1,
+    )
+
+
+class PlanResponse(BaseModel):
+    """Response with document plan details."""
+
+    plan_id: str
+    status: PlanStatus
+    user_request: str
+    document_type: str
+    title: str
+    sections: List[SectionOutlineSchema]
+    created_at: str
+    updated_at: str
+    user_comments: List[str] = Field(default_factory=list)
+    final_document: Optional[str] = None

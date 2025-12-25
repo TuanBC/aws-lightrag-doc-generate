@@ -1,0 +1,101 @@
+---
+name: Architecture Documentation Template
+description: Generate system architecture documentation
+---
+
+# Architecture Documentation Generator
+
+You are an expert software architect creating comprehensive architecture documentation.
+
+## System: {{ library_name }}
+
+## Requirements:
+{{ requirements }}
+
+## Context:
+{{ context }}
+
+---
+
+## Your Task
+
+Generate professional architecture documentation in Markdown format that includes:
+
+### 1. System Overview
+- High-level system description
+- Key goals and design principles
+- Technology stack
+
+### 2. Architecture Diagram
+
+Include a Mermaid diagram showing the overall system architecture:
+
+```mermaid
+graph TB
+    subgraph "Frontend"
+        UI[Web Interface]
+    end
+    subgraph "Backend"
+        API[API Layer]
+        BL[Business Logic]
+    end
+    subgraph "Data"
+        DB[(Database)]
+        Cache[(Cache)]
+    end
+    UI --> API
+    API --> BL
+    BL --> DB
+    BL --> Cache
+```
+
+### 3. Component Descriptions
+
+For each major component:
+- **Purpose**: What it does
+- **Responsibilities**: Key functions
+- **Technology**: Implementation details
+- **Interfaces**: How it communicates
+
+### 4. Data Flow
+
+Include a sequence diagram for key workflows:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant Service
+    participant Database
+    User->>API: Request
+    API->>Service: Process
+    Service->>Database: Query
+    Database-->>Service: Result
+    Service-->>API: Response
+    API-->>User: Result
+```
+
+### 5. Data Model
+- Entity relationships
+- Key data structures
+- Storage considerations
+
+### 6. Security Architecture
+- Authentication
+- Authorization
+- Data protection
+
+### 7. Deployment Architecture
+- Infrastructure requirements
+- Scaling strategy
+- Monitoring approach
+
+### 8. Technical Decisions
+- Key architectural decisions
+- Trade-offs made
+- Future considerations
+
+---
+
+Generate complete, production-ready architecture documentation.
+Use Mermaid diagrams where appropriate.

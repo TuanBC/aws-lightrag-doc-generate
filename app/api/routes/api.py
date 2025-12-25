@@ -330,3 +330,183 @@ async def lightrag_stats():
         return await service.get_stats()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Stats failed: {str(e)}")
+
+
+# =============================================================================
+# Planning Agent - Document Structure Review Workflow
+# =============================================================================
+
+
+@router.post(
+    "/v1/plans/create",
+    summary="Create a document plan from user request",
+)
+async def create_plan(user_request: str):
+    """
+    Create a new document plan with AI-generated outline.
+
+    The outline can be reviewed, refined with comments, and approved before generation.
+    """
+    from app.schemas import PlanResponse, SectionOutlineSchema
+    from app.services.planning_agent import PlanningAgent
+
+    try:
+        agent = PlanningAgent()
+        plan = await agent.create_plan(user_request)
+
+        return PlanResponse(
+            plan_id=plan.plan_id,
+            status=plan.status.value,
+            user_request=plan.user_request,
+            document_type=plan.document_type,
+            title=plan.title,
+            sections=[
+                SectionOutlineSchema(
+                    title=s.title,
+                    description=s.description,
+                    subsections=s.subsections,
+                    estimated_length=s.estimated_length,
+                )
+                for s in plan.sections
+            ],
+            created_at=plan.created_at,
+            updated_at=plan.updated_at,
+            user_comments=plan.user_comments,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Plan creation failed: {str(e)}")
+
+
+@router.get(
+    "/v1/plans/{plan_id}",
+    summary="Get plan details",
+)
+async def get_plan(plan_id: str):
+    """Get a document plan by ID."""
+    from app.schemas import PlanResponse, SectionOutlineSchema
+    from app.services.planning_agent import PlanningAgent
+
+    agent = PlanningAgent()
+    plan = await agent.get_plan(plan_id)
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    return PlanResponse(
+        plan_id=plan.plan_id,
+        status=plan.status.value,
+        user_request=plan.user_request,
+        document_type=plan.document_type,
+        title=plan.title,
+        sections=[
+            SectionOutlineSchema(
+                title=s.title,
+                description=s.description,
+                subsections=s.subsections,
+                estimated_length=s.estimated_length,
+            )
+            for s in plan.sections
+        ],
+        created_at=plan.created_at,
+        updated_at=plan.updated_at,
+        user_comments=plan.user_comments,
+        final_document=plan.final_document,
+    )
+
+
+@router.post(
+    "/v1/plans/{plan_id}/comment",
+    summary="Add feedback to refine the outline",
+)
+async def add_plan_comment(plan_id: str, comment: str):
+    """
+    Add user feedback to refine the document outline.
+
+    The AI will update the outline based on your comments.
+    """
+    from app.schemas import PlanResponse, SectionOutlineSchema
+    from app.services.planning_agent import PlanningAgent
+
+    agent = PlanningAgent()
+    plan = await agent.add_comment(plan_id, comment)
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    return PlanResponse(
+        plan_id=plan.plan_id,
+        status=plan.status.value,
+        user_request=plan.user_request,
+        document_type=plan.document_type,
+        title=plan.title,
+        sections=[
+            SectionOutlineSchema(
+                title=s.title,
+                description=s.description,
+                subsections=s.subsections,
+                estimated_length=s.estimated_length,
+            )
+            for s in plan.sections
+        ],
+        created_at=plan.created_at,
+        updated_at=plan.updated_at,
+        user_comments=plan.user_comments,
+    )
+
+
+@router.post(
+    "/v1/plans/{plan_id}/approve",
+    summary="Approve the plan outline",
+)
+async def approve_plan(plan_id: str):
+    """Approve the document plan outline for generation."""
+    from app.services.planning_agent import PlanningAgent
+
+    agent = PlanningAgent()
+    plan = await agent.approve_plan(plan_id)
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    return {"message": "Plan approved", "plan_id": plan_id, "status": plan.status.value}
+
+
+@router.post(
+    "/v1/plans/{plan_id}/generate",
+    summary="Generate document from approved plan",
+)
+async def generate_from_plan(plan_id: str):
+    """
+    Generate the full document based on the approved plan.
+
+    The plan must be approved first before generation.
+    """
+    from app.schemas import PlanResponse, SectionOutlineSchema
+    from app.services.planning_agent import PlanningAgent
+
+    agent = PlanningAgent()
+    plan = await agent.generate_from_plan(plan_id)
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found or not approved")
+
+    return PlanResponse(
+        plan_id=plan.plan_id,
+        status=plan.status.value,
+        user_request=plan.user_request,
+        document_type=plan.document_type,
+        title=plan.title,
+        sections=[
+            SectionOutlineSchema(
+                title=s.title,
+                description=s.description,
+                subsections=s.subsections,
+                estimated_length=s.estimated_length,
+            )
+            for s in plan.sections
+        ],
+        created_at=plan.created_at,
+        updated_at=plan.updated_at,
+        user_comments=plan.user_comments,
+        final_document=plan.final_document,
+    )

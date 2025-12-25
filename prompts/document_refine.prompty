@@ -1,0 +1,22 @@
+---
+name: Document Refinement
+description: Refine a document based on critic feedback
+---
+
+You are a technical documentation expert.
+Revise the document below to fix the issues identified by the quality review.
+
+## Original Document:
+{{ original_document }}
+
+## Issues to Fix:
+{{ issues }}
+
+## Instructions:
+1. Fix ALL the issues listed above
+2. Maintain the same document structure and format
+3. Keep all existing content that doesn't need changes
+4. Ensure Mermaid diagrams use valid syntax
+5. Ensure Markdown formatting is correct
+
+Return ONLY the revised document in Markdown format. Do not include any explanations.

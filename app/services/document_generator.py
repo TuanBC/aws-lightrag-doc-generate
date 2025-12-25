@@ -158,6 +158,50 @@ class DocumentGenerator:
         # Extract content
         content = self._extract_response_content(response)
 
+        # Self-critique loop: validate and refine until passing or max iterations
+        max_iterations = 5
+        for iteration in range(max_iterations):
+            logger.info(f"Critic validation iteration {iteration + 1}/{max_iterations}")
+
+            # Validate with critic
+            from app.services.critic_agent import CriticAgent
+
+            critic = CriticAgent()
+            report = await critic.full_review(
+                content, requirements=requirements, check_content=False
+            )
+
+            if report.overall_passed:
+                logger.info(f"Document passed validation on iteration {iteration + 1}")
+                break
+
+            # Collect issues for refinement
+            issues = []
+            for issue in report.markdown_result.issues:
+                issues.append(f"[{issue.severity}] {issue.category}: {issue.message}")
+            for issue in report.mermaid_result.issues:
+                issues.append(f"[{issue.severity}] Mermaid: {issue.message}")
+
+            if not issues:
+                logger.info("No specific issues found, accepting document")
+                break
+
+            # Refine document based on feedback
+            logger.info(f"Refining document based on {len(issues)} issues")
+            from app.core.prompts import load_prompt
+
+            refine_prompt = load_prompt(
+                "document_refine",
+                original_document=content,
+                issues="\n".join(f"- {i}" for i in issues),
+            )
+
+            refine_response = await self.llm.ainvoke([{"role": "user", "content": refine_prompt}])
+            content = self._extract_response_content(refine_response)
+
+        else:
+            logger.warning(f"Document did not pass validation after {max_iterations} iterations")
+
         # Build title
         title = f"{document_type.value.upper().replace('_', ' ')}"
         if library_name:
@@ -172,6 +216,7 @@ class DocumentGenerator:
             metadata={
                 "prompt_length": len(prompt),
                 "response_length": len(content),
+                "refinement_iterations": iteration + 1 if "iteration" in dir() else 0,
             },
         )
 

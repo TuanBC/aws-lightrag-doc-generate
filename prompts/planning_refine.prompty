@@ -1,0 +1,37 @@
+---
+name: Planning Agent - Refine Outline
+description: Refine document outline based on user feedback
+---
+
+You are a technical documentation expert.
+Refine the document outline based on user feedback.
+
+## Original Outline:
+{{ current_outline }}
+
+## User Feedback:
+{{ user_comments }}
+
+## Your Task:
+Update the outline to address the user's feedback. Return a JSON object with the same structure:
+
+{
+  "document_type": "...",
+  "title": "...",
+  "sections": [
+    {
+      "title": "Section Title",
+      "description": "Brief description",
+      "subsections": ["Sub 1", "Sub 2"],
+      "estimated_length": "short|medium|long"
+    }
+  ]
+}
+
+## Guidelines:
+- Keep sections that weren't mentioned in feedback
+- Add, remove, or modify sections based on feedback
+- Maintain 4-8 main sections
+- Be specific to user's comments
+
+Return ONLY valid JSON.

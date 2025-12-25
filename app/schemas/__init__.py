@@ -1,12 +1,17 @@
 """Pydantic schema exports."""
 
 from .documents import (
+    AddCommentRequest,
+    CreatePlanRequest,
     CriticReportResponse,
     DocumentType,
     ErrorResponse,
     GeneratedDocumentResponse,
     GenerateDocumentRequest,
     HealthResponse,
+    PlanResponse,
+    PlanStatus,
+    SectionOutlineSchema,
     UploadDocumentRequest,
     UploadDocumentResponse,
     ValidateDocumentRequest,
@@ -28,4 +33,10 @@ __all__ = [
     "UploadDocumentResponse",
     "HealthResponse",
     "ErrorResponse",
+    # Planning Agent
+    "PlanStatus",
+    "SectionOutlineSchema",
+    "CreatePlanRequest",
+    "AddCommentRequest",
+    "PlanResponse",
 ]

@@ -56,24 +56,6 @@ class LightRAGService:
     Stores everything as JSON in S3 for zero-cost persistence.
     """
 
-    ENTITY_EXTRACTION_PROMPT = """Extract entities and relationships from this document.
-
-Document:
-{content}
-
-Return a JSON object with:
-{{
-  "entities": [
-    {{"name": "EntityName", "type": "class|function|module|concept|api", "description": "brief description"}}
-  ],
-  "relationships": [
-    {{"source": "Entity1", "target": "Entity2", "type": "uses|extends|implements|calls|depends_on", "description": "how they relate"}}
-  ]
-}}
-
-Focus on code entities (classes, functions, modules) and their relationships.
-Only return valid JSON, no other text."""
-
     def __init__(
         self,
         bucket_name: Optional[str] = None,
@@ -180,7 +162,9 @@ Only return valid JSON, no other text."""
         self, content: str, doc_id: str
     ) -> tuple[List[Entity], List[Relationship]]:
         """Extract entities and relationships using LLM."""
-        prompt = self.ENTITY_EXTRACTION_PROMPT.format(content=content[:10000])  # Limit size
+        from app.core.prompts import load_prompt
+
+        prompt = load_prompt("entity_extraction", content=content[:10000])  # Limit size
 
         try:
             response = await self.llm.ainvoke([{"role": "user", "content": prompt}])

@@ -1,0 +1,42 @@
+---
+name: LightRAG Entity Extraction
+description: Extract entities and relationships from documents for knowledge graph
+---
+
+Extract entities and relationships from this document.
+
+## Document:
+{{ content }}
+
+## Your Task:
+Return a JSON object with:
+
+{
+  "entities": [
+    {"name": "EntityName", "type": "class|function|module|concept|api", "description": "brief description"}
+  ],
+  "relationships": [
+    {"source": "Entity1", "target": "Entity2", "type": "uses|extends|implements|calls|depends_on", "description": "how they relate"}
+  ]
+}
+
+## Entity Types:
+- `class` - Classes and types
+- `function` - Functions and methods
+- `module` - Modules and packages
+- `concept` - Abstract concepts and patterns
+- `api` - API endpoints and interfaces
+
+## Relationship Types:
+- `uses` - One entity uses another
+- `extends` - Inheritance relationship
+- `implements` - Interface implementation
+- `calls` - Function/method calls
+- `depends_on` - General dependency
+
+## Guidelines:
+- Focus on code entities (classes, functions, modules)
+- Extract meaningful relationships
+- Keep descriptions brief but informative
+
+Return ONLY valid JSON, no other text.

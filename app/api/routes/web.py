@@ -147,3 +147,103 @@ async def validate_document_page(
             },
         )
         return templates.TemplateResponse("validate.html", context)
+
+
+# =============================================================================
+# Planning Agent Routes
+# =============================================================================
+
+
+@router.get("/plan/new", response_class=HTMLResponse)
+async def new_plan_page(request: Request) -> HTMLResponse:
+    """Show the custom plan request form."""
+    context = _template_context(request, "Create Custom Document Plan")
+    return templates.TemplateResponse("home.html", context)
+
+
+@router.post("/plan/create", response_class=HTMLResponse)
+async def create_plan_page(
+    request: Request,
+    user_request: str = Form(...),
+) -> HTMLResponse:
+    """Handle custom plan creation form."""
+    from fastapi.responses import RedirectResponse
+
+    from app.services.planning_agent import PlanningAgent
+
+    try:
+        agent = PlanningAgent()
+        plan = await agent.create_plan(user_request)
+        return RedirectResponse(url=f"/plan/{plan.plan_id}", status_code=303)
+    except Exception as e:
+        context = _template_context(
+            request,
+            "Plan Creation Error",
+            {"error": str(e), "success": False},
+        )
+        return templates.TemplateResponse("home.html", context)
+
+
+@router.get("/plan/{plan_id}", response_class=HTMLResponse)
+async def view_plan_page(request: Request, plan_id: str) -> HTMLResponse:
+    """View a document plan for review."""
+    from app.services.planning_agent import PlanningAgent
+
+    agent = PlanningAgent()
+    plan = await agent.get_plan(plan_id)
+
+    if not plan:
+        context = _template_context(
+            request,
+            "Plan Not Found",
+            {"error": "Plan not found", "success": False},
+        )
+        return templates.TemplateResponse("home.html", context)
+
+    context = _template_context(
+        request,
+        f"Review: {plan.title}",
+        {"plan": plan, "success": True},
+    )
+    return templates.TemplateResponse("plan_review.html", context)
+
+
+@router.post("/plan/{plan_id}/comment", response_class=HTMLResponse)
+async def add_comment_page(
+    request: Request,
+    plan_id: str,
+    comment: str = Form(...),
+) -> HTMLResponse:
+    """Handle adding a comment to refine the plan."""
+    from fastapi.responses import RedirectResponse
+
+    from app.services.planning_agent import PlanningAgent
+
+    agent = PlanningAgent()
+    await agent.add_comment(plan_id, comment)
+    return RedirectResponse(url=f"/plan/{plan_id}", status_code=303)
+
+
+@router.post("/plan/{plan_id}/approve", response_class=HTMLResponse)
+async def approve_plan_page(request: Request, plan_id: str) -> HTMLResponse:
+    """Handle plan approval and trigger generation."""
+    from fastapi.responses import RedirectResponse
+
+    from app.services.planning_agent import PlanningAgent
+
+    agent = PlanningAgent()
+    await agent.approve_plan(plan_id)
+    await agent.generate_from_plan(plan_id)
+    return RedirectResponse(url=f"/plan/{plan_id}", status_code=303)
+
+
+@router.post("/plan/{plan_id}/generate", response_class=HTMLResponse)
+async def generate_from_plan_page(request: Request, plan_id: str) -> HTMLResponse:
+    """Handle document generation from approved plan."""
+    from fastapi.responses import RedirectResponse
+
+    from app.services.planning_agent import PlanningAgent
+
+    agent = PlanningAgent()
+    await agent.generate_from_plan(plan_id)
+    return RedirectResponse(url=f"/plan/{plan_id}", status_code=303)

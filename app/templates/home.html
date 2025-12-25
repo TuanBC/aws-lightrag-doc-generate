@@ -26,30 +26,27 @@
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label for="library_name">Library/Framework Name</label>
-                <input type="text" name="library_name" id="library_name" 
-                       class="form-control" 
-                       placeholder="e.g., react, fastapi, next.js">
+                <input type="text" name="library_name" id="library_name" class="form-control"
+                    placeholder="e.g., react, fastapi, next.js">
                 <small class="form-hint">Leave empty for general documentation</small>
             </div>
-            
+
             <div class="form-group">
                 <label for="requirements">Requirements / Description</label>
-                <textarea name="requirements" id="requirements" 
-                          class="form-control" rows="6"
-                          placeholder="Describe the system, features, or requirements..."></textarea>
+                <textarea name="requirements" id="requirements" class="form-control" rows="6"
+                    placeholder="Describe the system, features, or requirements..."></textarea>
             </div>
-            
+
             <div class="form-group">
                 <label for="topics">Focus Topics (comma-separated)</label>
-                <input type="text" name="topics" id="topics" 
-                       class="form-control"
-                       placeholder="e.g., authentication, routing, database">
+                <input type="text" name="topics" id="topics" class="form-control"
+                    placeholder="e.g., authentication, routing, database">
                 <small class="form-hint">Specific topics to include in the document</small>
             </div>
-            
+
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary btn-lg">
                     🚀 Generate Document
@@ -76,4 +73,39 @@
         <p>Automatic syntax and quality checking</p>
     </div>
 </div>
+
+<div class="card custom-plan-card">
+    <div class="card-header">
+        <h2>📋 Custom Document Plan</h2>
+    </div>
+    <div class="card-body">
+        <p>Have a specific document in mind? Describe what you need and we'll generate a structure for you to review
+            before generation.</p>
+        <form action="/plan/create" method="POST" class="form">
+            <div class="form-group">
+                <label for="user_request">Describe Your Document</label>
+                <textarea name="user_request" id="user_request" class="form-control" rows="4"
+                    placeholder="e.g., Create technical documentation for a payment processing microservice that handles Stripe integration, webhooks, and refund processing..."
+                    required minlength="10"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-secondary btn-lg">
+                    📋 Create Plan & Review
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .custom-plan-card {
+        margin-top: 2rem;
+        border: 2px dashed var(--primary);
+        background: rgba(99, 102, 241, 0.05);
+    }
+
+    .custom-plan-card .card-header {
+        border-bottom-style: dashed;
+    }
+</style>
 {% endblock %}
