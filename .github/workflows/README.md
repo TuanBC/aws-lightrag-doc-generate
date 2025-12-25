@@ -54,10 +54,27 @@ Configure these secrets in GitHub repository settings:
 - `STAGING_URL` - Staging environment URL
 - `PRODUCTION_URL` - Production environment URL
 - Additional deployment secrets based on your platform:
-  - AWS: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+  - AWS: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ACCOUNT_ID`
   - Kubernetes: `KUBECONFIG`
   - Fly.io: `FLY_API_TOKEN`
   - Railway: `RAILWAY_TOKEN`
+
+### 4. `deploy-frontend.yml` - Frontend S3 Deployment
+**Triggers:**
+- Push to `main` branch (changes in `frontend/` directory)
+- Manual workflow dispatch
+
+**Features:**
+- Builds Next.js static export
+- Automatically fetches Lambda Function URL as API base
+- Deploys to S3 with proper cache headers
+- HTML files: no-cache for instant updates
+- Assets: 1-year cache with immutable flag
+
+**Required Secrets:**
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_ACCOUNT_ID` (your 12-digit AWS account ID)
 
 ## Environment Variables
 

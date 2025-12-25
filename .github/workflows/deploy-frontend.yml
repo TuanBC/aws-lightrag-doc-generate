@@ -1,0 +1,95 @@
+name: Deploy Frontend to S3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'Backend API URL (Lambda Function URL)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET: tech-doc-frontend-${{ secrets.AWS_ACCOUNT_ID }}
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Get Lambda Function URL
+        id: get-api-url
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          # Use input URL or fetch from Lambda
+          if [ -n "${{ github.event.inputs.api_base_url }}" ]; then
+            API_URL="${{ github.event.inputs.api_base_url }}"
+          else
+            API_URL=$(aws lambda get-function-url-config \
+              --function-name tech-doc-generator \
+              --query "FunctionUrl" --output text 2>/dev/null || echo "")
+          fi
+          
+          # Remove trailing slash if present
+          API_URL="${API_URL%/}"
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+          echo "🔗 API Base URL: $API_URL"
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ steps.get-api-url.outputs.api_url }}
+        run: |
+          echo "Building with API URL: $NEXT_PUBLIC_API_BASE_URL"
+          npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3
+        working-directory: frontend
+        run: |
+          # Sync static files to S3
+          aws s3 sync out/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html"
+          
+          # Upload HTML files with no-cache
+          aws s3 sync out/ s3://${{ env.S3_BUCKET }}/ \
+            --exclude "*" \
+            --include "*.html" \
+            --cache-control "no-cache, no-store, must-revalidate"
+          
+          echo "✅ Frontend deployed to S3!"
+
+      - name: Get Frontend URL
+        run: |
+          echo "🚀 Frontend URL: http://${{ env.S3_BUCKET }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
