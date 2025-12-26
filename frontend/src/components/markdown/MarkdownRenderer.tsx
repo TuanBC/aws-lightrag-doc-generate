@@ -1,15 +1,62 @@
 'use client';
 
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSlug from 'rehype-slug';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MermaidChart from './MermaidChart';
+import { Copy, Check } from 'lucide-react';
 
 interface MarkdownRendererProps {
     content: string;
     className?: string;
+}
+
+// Copy button with feedback animation
+function CopyButton({ code }: { code: string }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <button
+            className="copy-button"
+            onClick={handleCopy}
+            title={copied ? "Copied!" : "Copy code"}
+        >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+        </button>
+    );
+}
+
+// Code block wrapper component
+function CodeBlock({ language, code }: { language: string; code: string }) {
+    return (
+        <div className="code-block-wrapper">
+            <div className="code-header">
+                <span className="code-language">{language}</span>
+                <CopyButton code={code} />
+            </div>
+            <SyntaxHighlighter
+                style={oneDark}
+                language={language}
+                PreTag="div"
+                customStyle={{
+                    margin: 0,
+                    borderRadius: '0 0 8px 8px',
+                    fontSize: '0.9rem',
+                }}
+            >
+                {code}
+            </SyntaxHighlighter>
+        </div>
+    );
 }
 
 export default function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
@@ -52,32 +99,7 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
                         }
 
                         // Syntax highlighted code blocks
-                        return (
-                            <div className="code-block-wrapper">
-                                <div className="code-header">
-                                    <span className="code-language">{language}</span>
-                                    <button
-                                        className="copy-button"
-                                        onClick={() => navigator.clipboard.writeText(codeContent)}
-                                        title="Copy code"
-                                    >
-                                        📋
-                                    </button>
-                                </div>
-                                <SyntaxHighlighter
-                                    style={oneDark}
-                                    language={language}
-                                    PreTag="div"
-                                    customStyle={{
-                                        margin: 0,
-                                        borderRadius: '0 0 8px 8px',
-                                        fontSize: '0.9rem',
-                                    }}
-                                >
-                                    {codeContent}
-                                </SyntaxHighlighter>
-                            </div>
-                        );
+                        return <CodeBlock language={language} code={codeContent} />;
                     },
 
                     // Headings with IDs for anchor links

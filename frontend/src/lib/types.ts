@@ -134,6 +134,9 @@ export interface ChatMessage {
     metadata?: {
         documentType?: DocumentType;
         planId?: string;
+        planStatus?: 'pending' | 'approved' | 'generated';
+        planResponse?: PlanResponse;  // Store full plan data in message
+        approvedPlan?: PlanResponse;  // Collapsed plan after approval
         isLoading?: boolean;
         error?: string;
         steps?: ToolStep[];

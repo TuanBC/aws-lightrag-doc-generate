@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { ChatMessage, DocumentType, PlanStatus, ToolStep } from '@/lib/types';
+import { ChatMessage, DocumentType, PlanStatus, ToolStep, PlanResponse } from '@/lib/types';
 import api from '@/lib/api';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
+import PlanViewer, { SectionComment } from './PlanViewer';
 import { Rocket, FileText, Server, MessageSquare, Check, Sparkles, Zap, Map } from 'lucide-react';
 
 function generateId(): string {
@@ -23,6 +24,7 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [activePlan, setActivePlan] = useState<string | null>(null);
+    const [activePlanData, setActivePlanData] = useState<PlanResponse | null>(null);
     const [currentDocType, setCurrentDocType] = useState<DocumentType>(DocumentType.SRS);
     const [isGuidedMode, setIsGuidedMode] = useState(false);
 
@@ -85,9 +87,9 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
                 // Planning mode - use regular API
                 const plan = await api.createPlan(message);
                 setActivePlan(plan.plan_id);
-                const planContent = formatPlanResponse(plan);
+                setActivePlanData(plan);  // Store full plan for PlanViewer
                 updateMessage(assistantId, {
-                    content: planContent,
+                    content: '',  // Content rendered by PlanViewer
                     metadata: { isLoading: false, planId: plan.plan_id },
                 });
             } else {
@@ -171,14 +173,31 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
                     if (comment) {
                         addMessage('user', comment);
                         plan = await api.addComment(activePlan, comment);
+                        setActivePlanData(plan);  // Update plan data
                     }
                     break;
                 case 'approve':
+                    // Store the current plan data for collapsed display
+                    const planToStore = activePlanData;
+
+                    // Find and update the message that has this planId
+                    const planMsgId = messages.find(m => m.metadata?.planId === activePlan)?.id;
+                    if (planMsgId && planToStore) {
+                        updateMessage(planMsgId, {
+                            metadata: {
+                                ...messages.find(m => m.id === planMsgId)?.metadata,
+                                approvedPlan: planToStore,
+                                planId: undefined // Clear active planId
+                            }
+                        });
+                    }
+
                     await api.approvePlan(activePlan);
                     plan = await api.generateFromPlan(activePlan);
                     if (plan.status === PlanStatus.COMPLETED && plan.final_document) {
                         updateMessage(assistantId, { content: plan.final_document, metadata: { isLoading: false } });
                         setActivePlan(null);
+                        setActivePlanData(null);  // Clear plan data
                         return;
                     }
                     break;
@@ -187,14 +206,16 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
                     if (plan.final_document) {
                         updateMessage(assistantId, { content: plan.final_document, metadata: { isLoading: false } });
                         setActivePlan(null);
+                        setActivePlanData(null);  // Clear plan data
                         return;
                     }
                     break;
             }
 
             if (plan) {
+                setActivePlanData(plan);  // Update plan data
                 updateMessage(assistantId, {
-                    content: formatPlanResponse(plan),
+                    content: '',
                     metadata: { isLoading: false, planId: plan.plan_id },
                 });
             }
@@ -209,6 +230,32 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Handle approve with section comments from PlanViewer
+    const handleApproveWithComments = async (comments: SectionComment[]) => {
+        if (!activePlan) return;
+
+        // Add all comments to plan first
+        for (const { sectionTitle, comment } of comments) {
+            const fullComment = `[${sectionTitle}] ${comment}`;
+            await api.addComment(activePlan, fullComment);
+        }
+
+        // Then approve and generate
+        handlePlanAction('approve');
+    };
+
+    // Handle feedback with section comments from PlanViewer
+    const handleFeedbackWithComments = async (comments: SectionComment[]) => {
+        if (!activePlan || comments.length === 0) return;
+
+        // Combine all comments into a single feedback message
+        const feedbackMessage = comments
+            .map(({ sectionTitle, comment }) => `**${sectionTitle}:** ${comment}`)
+            .join('\n\n');
+
+        handlePlanAction('comment', feedbackMessage);
     };
 
     return (
@@ -264,25 +311,16 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
                     </div>
                 </div>
             ) : (
-                <MessageList messages={messages} />
-            )}
-
-            {activePlan && (
-                <div className="plan-actions">
-                    <button onClick={() => handlePlanAction('approve')} disabled={isLoading} className="action-btn primary">
-                        <Check size={16} /> Approve & Generate
-                    </button>
-                    <button
-                        onClick={() => {
-                            const comment = prompt('Enter your feedback:');
-                            if (comment) handlePlanAction('comment', comment);
-                        }}
-                        disabled={isLoading}
-                        className="action-btn secondary"
-                    >
-                        <MessageSquare size={16} /> Add Feedback
-                    </button>
-                </div>
+                <>
+                    <MessageList
+                        messages={messages}
+                        activePlanData={activePlanData}
+                        isLoading={isLoading}
+                        onApprove={handleApproveWithComments}
+                        onFeedback={handleFeedbackWithComments}
+                        onGeneralFeedback={(comment: string) => handlePlanAction('comment', comment)}
+                    />
+                </>
             )}
 
             <ChatInput
