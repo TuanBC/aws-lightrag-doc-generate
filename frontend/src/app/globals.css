@@ -1600,18 +1600,19 @@ select {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 0.85rem;
-  background: var(--bg-tertiary);
-}
-
-.message-item.user .message-avatar {
-  background: linear-gradient(135deg, #4285f4, #5e97f6);
   color: white;
 }
 
-.message-item.assistant .message-avatar {
-  background: linear-gradient(135deg, #ea4335, #d96570);
-  color: white;
+.message-avatar.user {
+  background: linear-gradient(135deg, #4285f4, #669DF6);
+}
+
+.message-avatar.assistant {
+  background: linear-gradient(135deg, #ea4335, #f28b82);
+}
+
+.message-avatar.system {
+  background: linear-gradient(135deg, #9AA0A6, #BDC1C6);
 }
 
 .message-content-wrapper {
@@ -1656,4 +1657,131 @@ select {
 .copy-button svg {
   width: 16px;
   height: 16px;
+}
+
+/* ============================================
+   Export Dropdown
+   ============================================ */
+
+.export-dropdown {
+  position: relative;
+  margin-left: auto;
+}
+
+.export-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.export-button:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.export-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-button .chevron {
+  transition: transform 0.2s ease;
+}
+
+.export-button .chevron.open {
+  transform: rotate(180deg);
+}
+
+.export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 200px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.export-option:hover {
+  background: rgba(168, 199, 250, 0.1);
+  color: var(--accent-primary);
+}
+
+.export-option:not(:last-child) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.export-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-option svg {
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+/* Message header flex adjustment for export button */
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Mermaid container styling for export capture */
+.mermaid-container {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
 }

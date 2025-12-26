@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { ChatMessage } from '@/lib/types';
 import MarkdownRenderer from '../markdown/MarkdownRenderer';
 import ToolStepCard from './ToolStepCard';
-import { ChevronDown, ChevronRight, FileText, CheckCircle } from 'lucide-react';
+import ExportDropdown from './ExportDropdown';
+import { ChevronDown, ChevronRight, FileText, CheckCircle, User, Bot, Settings } from 'lucide-react';
 
 interface MessageItemProps {
     message: ChatMessage;
@@ -60,11 +61,15 @@ export default function MessageItem({ message }: MessageItemProps) {
     const isUser = message.role === 'user';
     const isSystem = message.role === 'system';
     const hasApprovedPlan = message.metadata?.approvedPlan;
+    const messageRef = useRef<HTMLDivElement>(null);
+
+    // Show export button for assistant messages with content
+    const showExport = !isUser && !isSystem && message.content && !message.metadata?.isLoading && !message.metadata?.error;
 
     return (
-        <div className={`message-item ${message.role}`}>
-            <div className="message-avatar">
-                {isUser ? '👤' : isSystem ? '⚙️' : '🤖'}
+        <div className={`message-item ${message.role}`} ref={messageRef}>
+            <div className={`message-avatar ${message.role}`}>
+                {isUser ? <User size={18} /> : isSystem ? <Settings size={18} /> : <Bot size={18} />}
             </div>
 
             <div className="message-content-wrapper">
@@ -78,6 +83,15 @@ export default function MessageItem({ message }: MessageItemProps) {
                             minute: '2-digit'
                         })}
                     </span>
+
+                    {/* Export button for assistant messages */}
+                    {showExport && (
+                        <ExportDropdown
+                            content={message.content}
+                            messageRef={messageRef as React.RefObject<HTMLElement>}
+                            title={message.metadata?.documentType || 'document'}
+                        />
+                    )}
                 </div>
 
                 {/* Render tool steps above content */}
@@ -129,3 +143,4 @@ export default function MessageItem({ message }: MessageItemProps) {
         </div>
     );
 }
+
