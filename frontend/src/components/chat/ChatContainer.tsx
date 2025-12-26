@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { ChatMessage, DocumentType, PlanStatus } from '@/lib/types';
+import { ChatMessage, DocumentType, PlanStatus, ToolStep } from '@/lib/types';
 import api from '@/lib/api';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
@@ -44,6 +44,30 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
         );
     }, []);
 
+    // Update message steps in-place (for streaming)
+    const addStepToMessage = useCallback((id: string, step: ToolStep) => {
+        setMessages((prev) =>
+            prev.map((msg) => {
+                if (msg.id !== id) return msg;
+                const currentSteps = msg.metadata?.steps || [];
+                // Update existing step or add new one
+                const existingIdx = currentSteps.findIndex(
+                    (s) => s.tool_name === step.tool_name && s.status === 'running'
+                );
+                if (existingIdx >= 0 && step.status === 'done') {
+                    // Update the existing running step to done
+                    const newSteps = [...currentSteps];
+                    newSteps[existingIdx] = step;
+                    return { ...msg, metadata: { ...msg.metadata, steps: newSteps } };
+                } else if (step.status === 'running') {
+                    // Add new running step
+                    return { ...msg, metadata: { ...msg.metadata, steps: [...currentSteps, step] } };
+                }
+                return msg;
+            })
+        );
+    }, []);
+
     const handleSend = async (
         message: string,
         options?: {
@@ -53,11 +77,12 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
         }
     ) => {
         addMessage('user', message, { documentType: options?.documentType });
-        const assistantId = addMessage('assistant', '', { isLoading: true });
+        const assistantId = addMessage('assistant', '', { isLoading: true, steps: [] });
         setIsLoading(true);
 
         try {
             if (options?.createPlan) {
+                // Planning mode - use regular API
                 const plan = await api.createPlan(message);
                 setActivePlan(plan.plan_id);
                 const planContent = formatPlanResponse(plan);
@@ -66,15 +91,43 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
                     metadata: { isLoading: false, planId: plan.plan_id },
                 });
             } else {
-                const result = await api.generateDocument({
-                    document_type: options?.documentType || DocumentType.SRS,
-                    requirements: message,
-                    additional_context: options?.context,
-                });
-                updateMessage(assistantId, {
-                    content: result.content,
-                    metadata: { isLoading: false, documentType: result.document_type },
-                });
+                // Fast mode - use streaming API with tool steps
+                await api.generateDocumentStream(
+                    {
+                        document_type: options?.documentType || DocumentType.SRS,
+                        requirements: message,
+                        additional_context: options?.context,
+                    },
+                    {
+                        onStep: (step) => {
+                            addStepToMessage(assistantId, step);
+                        },
+                        onContent: (response) => {
+                            updateMessage(assistantId, {
+                                content: response.content,
+                                metadata: {
+                                    isLoading: false,
+                                    documentType: response.document_type,
+                                    steps: response.steps,
+                                },
+                            });
+                        },
+                        onDone: () => {
+                            setIsLoading(false);
+                        },
+                        onError: (error) => {
+                            updateMessage(assistantId, {
+                                content: '',
+                                metadata: {
+                                    isLoading: false,
+                                    error,
+                                },
+                            });
+                            setIsLoading(false);
+                        },
+                    }
+                );
+                return; // Don't set isLoading=false here, onDone handles it
             }
         } catch (error) {
             updateMessage(assistantId, {
@@ -85,7 +138,9 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
                 },
             });
         } finally {
-            setIsLoading(false);
+            if (options?.createPlan) {
+                setIsLoading(false);
+            }
         }
     };
 

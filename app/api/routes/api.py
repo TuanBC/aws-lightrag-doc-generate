@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from typing import AsyncGenerator
+
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
 
 from app.schemas import (
     CriticReportResponse,
     GeneratedDocumentResponse,
     GenerateDocumentRequest,
     HealthResponse,
+    StreamEvent,
+    ToolStep,
     UploadDocumentRequest,
     UploadDocumentResponse,
     ValidateDocumentRequest,
@@ -114,6 +118,114 @@ async def generate_document_markdown(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/v1/documents/generate/stream",
+    summary="Generate document with streaming tool steps (SSE)",
+    response_class=StreamingResponse,
+)
+async def generate_document_stream(
+    request: GenerateDocumentRequest,
+) -> StreamingResponse:
+    """
+    Generate a document with Server-Sent Events for real-time tool step display.
+
+    Streams events of types:
+    - step: Tool step started/completed (Context7, KB, Critic)
+    - content: Final document content chunks
+    - done: Generation complete
+    - error: Error occurred
+    """
+
+    async def event_generator() -> AsyncGenerator[str, None]:
+        try:
+            generator = DocumentGenerator()
+            doc_type = DocumentType(request.document_type.value)
+            steps: list[ToolStep] = []
+
+            # Step 1: Context7 Library Lookup
+            if request.library_name:
+                step = ToolStep(
+                    tool_name="resolve-library-id",
+                    parameters={"libraryName": request.library_name},
+                    status="running",
+                )
+                yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
+
+                # Actually fetch context
+                library_context = await generator._get_library_context(
+                    request.library_name, request.topics
+                )
+
+                step.status = "done"
+                step.result_summary = f"Found {len(library_context)} chars of documentation"
+                steps.append(step)
+                yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
+
+            # Step 2: Knowledge Base Search
+            if request.requirements:
+                step = ToolStep(
+                    tool_name="search-knowledge-base",
+                    parameters={"query": request.requirements[:100] + "..."},
+                    status="running",
+                )
+                yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
+
+                kb_context = await generator._get_kb_context(request.requirements)
+
+                step.status = "done"
+                step.result_summary = f"Found {len(kb_context) if kb_context else 0} chars from KB"
+                steps.append(step)
+                yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
+
+            # Step 3: LLM Generation
+            step = ToolStep(
+                tool_name="generate-document",
+                parameters={"type": doc_type.value, "model": "Claude 3.5 Sonnet"},
+                status="running",
+            )
+            yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
+
+            result = await generator.generate(
+                document_type=doc_type,
+                library_name=request.library_name,
+                requirements=request.requirements,
+                topics=request.topics,
+                additional_context=request.additional_context,
+            )
+
+            step.status = "done"
+            step.result_summary = f"Generated {len(result.content)} chars"
+            steps.append(step)
+            yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
+
+            # Final content
+            response = GeneratedDocumentResponse(
+                document_type=request.document_type,
+                title=result.title,
+                content=result.content,
+                library_name=result.library_name,
+                topics=result.topics,
+                generated_at=result.generated_at,
+                metadata=result.metadata,
+                steps=steps,
+            )
+            yield f"data: {StreamEvent(event_type='content', content_chunk=response.model_dump_json()).model_dump_json()}\n\n"
+            yield f"data: {StreamEvent(event_type='done').model_dump_json()}\n\n"
+
+        except Exception as e:
+            yield f"data: {StreamEvent(event_type='error', error=str(e)).model_dump_json()}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # =============================================================================

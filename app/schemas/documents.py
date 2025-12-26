@@ -116,6 +116,30 @@ class ValidationResultResponse(BaseModel):
     checked_items: int = 0
 
 
+class ToolStep(BaseModel):
+    """A single tool/thinking step for streaming display."""
+
+    tool_name: str = Field(..., description="Name of the tool being used")
+    parameters: Dict[str, Any] = Field(
+        default_factory=dict, description="Parameters passed to the tool"
+    )
+    result_summary: Optional[str] = Field(default=None, description="Short summary of the result")
+    result_detail: Optional[str] = Field(
+        default=None, description="Full result content (collapsible)"
+    )
+    status: str = Field(default="running", description="running, done, or error")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class StreamEvent(BaseModel):
+    """Server-Sent Event for streaming generation progress."""
+
+    event_type: str = Field(..., description="Type: 'step', 'content', 'done', or 'error'")
+    step: Optional[ToolStep] = Field(default=None, description="Tool step data")
+    content_chunk: Optional[str] = Field(default=None, description="Partial content for streaming")
+    error: Optional[str] = Field(default=None, description="Error message if any")
+
+
 class CriticReportResponse(BaseModel):
     """Complete critic report for a document."""
 
@@ -138,6 +162,9 @@ class GeneratedDocumentResponse(BaseModel):
     topics: List[str] = Field(default_factory=list)
     generated_at: str
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    steps: List[ToolStep] = Field(
+        default_factory=list, description="Tool steps executed during generation"
+    )
 
 
 class UploadDocumentResponse(BaseModel):

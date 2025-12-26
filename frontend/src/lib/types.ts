@@ -68,6 +68,24 @@ export interface CriticReportResponse {
     suggestions: string[];
 }
 
+// Tool Step for streaming display
+export interface ToolStep {
+    tool_name: string;
+    parameters: Record<string, unknown>;
+    result_summary?: string;
+    result_detail?: string;
+    status: 'running' | 'done' | 'error';
+    timestamp?: string;
+}
+
+// Stream Event for SSE
+export interface StreamEvent {
+    event_type: 'step' | 'content' | 'done' | 'error';
+    step?: ToolStep;
+    content_chunk?: string;
+    error?: string;
+}
+
 export interface GeneratedDocumentResponse {
     document_type: DocumentType;
     title: string;
@@ -76,6 +94,7 @@ export interface GeneratedDocumentResponse {
     topics: string[];
     generated_at: string;
     metadata: Record<string, unknown>;
+    steps?: ToolStep[];
 }
 
 export interface UploadDocumentResponse {
@@ -117,6 +136,7 @@ export interface ChatMessage {
         planId?: string;
         isLoading?: boolean;
         error?: string;
+        steps?: ToolStep[];
     };
 }
 

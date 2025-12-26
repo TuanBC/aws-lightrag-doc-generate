@@ -12,6 +12,8 @@ from .documents import (
     PlanResponse,
     PlanStatus,
     SectionOutlineSchema,
+    StreamEvent,
+    ToolStep,
     UploadDocumentRequest,
     UploadDocumentResponse,
     ValidateDocumentRequest,
@@ -39,4 +41,7 @@ __all__ = [
     "CreatePlanRequest",
     "AddCommentRequest",
     "PlanResponse",
+    # Streaming
+    "ToolStep",
+    "StreamEvent",
 ]

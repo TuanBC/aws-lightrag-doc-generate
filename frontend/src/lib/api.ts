@@ -64,6 +64,99 @@ class ApiClient {
         return response.text();
     }
 
+    // Streaming Document Generation with Tool Steps (SSE)
+    // Falls back to regular generateDocument if streaming endpoint is not available
+    async generateDocumentStream(
+        request: GenerateDocumentRequest,
+        callbacks: {
+            onStep?: (step: import('./types').ToolStep) => void;
+            onContent?: (response: GeneratedDocumentResponse) => void;
+            onDone?: () => void;
+            onError?: (error: string) => void;
+        }
+    ): Promise<void> {
+        const url = `${this.baseUrl}/api/v1/documents/generate/stream`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(request),
+            });
+
+            // Fallback to regular API if streaming endpoint not available (404)
+            if (response.status === 404) {
+                console.log('Streaming endpoint not available, falling back to regular API');
+                const result = await this.generateDocument(request);
+                callbacks.onContent?.(result);
+                callbacks.onDone?.();
+                return;
+            }
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+                callbacks.onError?.(error.detail || `HTTP ${response.status}`);
+                return;
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                callbacks.onError?.('Failed to get response stream');
+                return;
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const event = JSON.parse(line.slice(6)) as import('./types').StreamEvent;
+
+                            switch (event.event_type) {
+                                case 'step':
+                                    if (event.step) callbacks.onStep?.(event.step);
+                                    break;
+                                case 'content':
+                                    if (event.content_chunk) {
+                                        const doc = JSON.parse(event.content_chunk) as GeneratedDocumentResponse;
+                                        callbacks.onContent?.(doc);
+                                    }
+                                    break;
+                                case 'done':
+                                    callbacks.onDone?.();
+                                    break;
+                                case 'error':
+                                    callbacks.onError?.(event.error || 'Unknown error');
+                                    break;
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse SSE event:', e);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            // Network error - fallback to regular API
+            console.log('Streaming failed, falling back to regular API:', e);
+            try {
+                const result = await this.generateDocument(request);
+                callbacks.onContent?.(result);
+                callbacks.onDone?.();
+            } catch (fallbackError) {
+                callbacks.onError?.(fallbackError instanceof Error ? fallbackError.message : 'Generation failed');
+            }
+        }
+    }
+
     // Document Validation
     async validateDocument(request: ValidateDocumentRequest): Promise<CriticReportResponse> {
         return this.fetch<CriticReportResponse>('/api/v1/documents/validate', {

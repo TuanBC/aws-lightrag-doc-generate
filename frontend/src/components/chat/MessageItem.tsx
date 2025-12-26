@@ -2,6 +2,7 @@
 
 import type { ChatMessage } from '@/lib/types';
 import MarkdownRenderer from '../markdown/MarkdownRenderer';
+import ToolStepCard from './ToolStepCard';
 
 interface MessageItemProps {
     message: ChatMessage;
@@ -29,6 +30,15 @@ export default function MessageItem({ message }: MessageItemProps) {
                         })}
                     </span>
                 </div>
+
+                {/* Render tool steps above content */}
+                {message.metadata?.steps && message.metadata.steps.length > 0 && (
+                    <div className="message-steps">
+                        {message.metadata.steps.map((step, idx) => (
+                            <ToolStepCard key={idx} step={step} />
+                        ))}
+                    </div>
+                )}
 
                 <div className="message-content">
                     {message.metadata?.isLoading ? (

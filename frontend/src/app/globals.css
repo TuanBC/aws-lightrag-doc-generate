@@ -733,3 +733,142 @@ button, input, textarea, select {
 /* Hide old elements if any */
 .scan-options { display: none !important; }
 
+
+/* ============================================
+   Tool Step Card Styles (Perplexity-like)
+   ============================================ */
+
+.tool-step-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    font-size: 0.85rem;
+}
+
+.tool-step-card.running {
+    border-color: var(--accent-primary);
+    animation: pulse-border 1.5s infinite;
+}
+
+.tool-step-card.done {
+    border-color: #4caf50;
+}
+
+.tool-step-card.error {
+    border-color: #f44336;
+}
+
+@keyframes pulse-border {
+    0%, 100% { border-color: var(--accent-primary); }
+    50% { border-color: transparent; }
+}
+
+.tool-step-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    cursor: pointer;
+    gap: 12px;
+}
+
+.tool-step-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.tool-step-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.status-icon {
+    flex-shrink: 0;
+}
+
+.status-icon.spinning {
+    animation: spin 1s linear infinite;
+    color: var(--accent-primary);
+}
+
+.status-icon.done {
+    color: #4caf50;
+}
+
+.status-icon.error {
+    color: #f44336;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.tool-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.tool-params {
+    color: var(--text-muted);
+    font-family: monospace;
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tool-step-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.result-summary {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.expand-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.expand-btn:hover {
+    color: var(--text-primary);
+}
+
+.tool-step-detail {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border-subtle);
+    background: rgba(0, 0, 0, 0.2);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.tool-step-detail pre {
+    margin: 0;
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Steps container in message */
+.message-steps {
+    margin-bottom: 16px;
+}
+
