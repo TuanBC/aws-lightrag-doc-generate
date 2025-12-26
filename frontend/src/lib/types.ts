@@ -5,6 +5,7 @@ export enum DocumentType {
     FUNCTIONAL_SPEC = 'functional_spec',
     API_DOCS = 'api_docs',
     ARCHITECTURE = 'architecture',
+    GENERAL = 'general',
 }
 
 export enum ValidationSeverity {

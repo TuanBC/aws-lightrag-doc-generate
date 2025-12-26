@@ -25,6 +25,7 @@ class DocumentType(str, Enum):
     FUNCTIONAL_SPEC = "functional_spec"
     API_DOCS = "api_docs"
     ARCHITECTURE = "architecture"
+    GENERAL = "general"
 
 
 @dataclass
@@ -55,6 +56,7 @@ class DocumentGenerator:
         DocumentType.FUNCTIONAL_SPEC: "functional_spec.prompty",
         DocumentType.API_DOCS: "api_docs.prompty",
         DocumentType.ARCHITECTURE: "architecture.prompty",
+        DocumentType.GENERAL: "general.prompty",
     }
 
     def __init__(self):

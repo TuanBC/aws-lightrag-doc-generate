@@ -16,6 +16,7 @@ class DocumentType(str, Enum):
     FUNCTIONAL_SPEC = "functional_spec"
     API_DOCS = "api_docs"
     ARCHITECTURE = "architecture"
+    GENERAL = "general"
 
 
 class ValidationSeverity(str, Enum):

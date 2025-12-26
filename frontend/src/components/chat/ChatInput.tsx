@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, KeyboardEvent, FormEvent } from 'react';
+import { useState, KeyboardEvent, FormEvent, useEffect, useRef } from 'react';
 import { DocumentType } from '@/lib/types';
 import FileUpload from './FileUpload';
+import { Send, Paperclip, Zap, Map } from 'lucide-react';
 
 interface ChatInputProps {
     onSend: (message: string, options?: {
@@ -11,14 +12,60 @@ interface ChatInputProps {
         context?: string;
     }) => void;
     disabled?: boolean;
+    initialDocumentType?: DocumentType;
+    initialCreatePlan?: boolean;
+    onOptionChange?: (type: DocumentType, plan: boolean) => void;
 }
 
-export default function ChatInput({ onSend, disabled = false }: ChatInputProps) {
+const getPlaceholderText = (type: DocumentType, isPlan: boolean) => {
+    const typeName = type === DocumentType.SRS ? 'SRS' : type.toLowerCase().replace(/_/g, ' ');
+
+    if (type === DocumentType.GENERAL) {
+        return isPlan ? "Describe the document you want to plan..." : "Describe the document you need...";
+    }
+
+    return isPlan
+        ? `Describe goals for the ${typeName} plan...`
+        : `Describe requirements for the ${typeName}...`;
+};
+
+export default function ChatInput({
+    onSend,
+    disabled = false,
+    initialDocumentType = DocumentType.SRS,
+    initialCreatePlan = false,
+    onOptionChange
+}: ChatInputProps) {
     const [message, setMessage] = useState('');
-    const [showOptions, setShowOptions] = useState(false);
-    const [documentType, setDocumentType] = useState<DocumentType>(DocumentType.SRS);
-    const [createPlan, setCreatePlan] = useState(false);
+    const [documentType, setDocumentType] = useState<DocumentType>(initialDocumentType);
+    const [createPlan, setCreatePlan] = useState(initialCreatePlan);
     const [contextFile, setContextFile] = useState<{ name: string; content: string } | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-resize textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [message]);
+
+    // Sync with initial props (one-way: parent -> child)
+    useEffect(() => {
+        setDocumentType(initialDocumentType);
+    }, [initialDocumentType]);
+
+    useEffect(() => {
+        setCreatePlan(initialCreatePlan);
+    }, [initialCreatePlan]);
+
+    // REMOVED: The problematic useEffect that called onOptionChange on every state change
+    // This was causing infinite loops. Now we call onOptionChange only from explicit user actions.
+
+    const handleModeChange = (isPlan: boolean) => {
+        setCreatePlan(isPlan);
+        onOptionChange?.(documentType, isPlan);
+    };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -32,7 +79,7 @@ export default function ChatInput({ onSend, disabled = false }: ChatInputProps) 
 
         setMessage('');
         setContextFile(null);
-        setCreatePlan(false);
+        if (textareaRef.current) textareaRef.current.style.height = 'auto';
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -43,85 +90,77 @@ export default function ChatInput({ onSend, disabled = false }: ChatInputProps) 
     };
 
     return (
-        <div className="chat-input-container">
-            {showOptions && (
-                <div className="input-options">
-                    <div className="option-group">
-                        <label htmlFor="doc-type">Document Type</label>
-                        <select
-                            id="doc-type"
-                            value={documentType}
-                            onChange={(e) => setDocumentType(e.target.value as DocumentType)}
-                            disabled={disabled}
-                        >
-                            <option value={DocumentType.SRS}>Software Requirements Spec</option>
-                            <option value={DocumentType.FUNCTIONAL_SPEC}>Functional Specification</option>
-                            <option value={DocumentType.API_DOCS}>API Documentation</option>
-                            <option value={DocumentType.ARCHITECTURE}>Architecture Document</option>
-                        </select>
-                    </div>
-
-                    <div className="option-group checkbox-group">
-                        <label>
-                            <input
-                                type="checkbox"
-                                checked={createPlan}
-                                onChange={(e) => setCreatePlan(e.target.checked)}
-                                disabled={disabled}
-                            />
-                            <span>Create plan first (review before generating)</span>
-                        </label>
-                    </div>
-
-                    <div className="option-group">
-                        <label>Context File</label>
-                        <FileUpload
-                            onFileSelect={setContextFile}
-                            disabled={disabled}
-                        />
-                    </div>
-                </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="input-form">
-                <button
-                    type="button"
-                    className={`options-toggle ${showOptions ? 'active' : ''}`}
-                    onClick={() => setShowOptions(!showOptions)}
-                    title="Toggle options"
-                >
-                    ⚙️
-                </button>
-
-                <div className="input-wrapper">
+        <div className="chat-input-wrapper">
+            <form onSubmit={handleSubmit} className="gemini-input-container">
+                <div className="input-area-top">
                     <textarea
+                        ref={textareaRef}
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Describe the document you want to generate..."
+                        placeholder={getPlaceholderText(documentType, createPlan)}
                         disabled={disabled}
                         rows={1}
+                        className="gemini-textarea"
                     />
-
                     {contextFile && (
-                        <div className="attached-file">
-                            📎 {contextFile.name}
-                            <button onClick={() => setContextFile(null)} title="Remove">×</button>
+                        <div className="file-chip">
+                            <Paperclip size={12} />
+                            <span>{contextFile.name}</span>
+                            <button onClick={() => setContextFile(null)} className="chip-remove">×</button>
                         </div>
                     )}
                 </div>
 
-                <button
-                    type="submit"
-                    className="send-button"
-                    disabled={!message.trim() || disabled}
-                    title="Send"
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-                    </svg>
-                </button>
+                <div className="input-actions-bottom">
+                    <div className="left-actions">
+                        <div className="mode-pill-group">
+                            <button
+                                type="button"
+                                className={`mode-pill-btn ${!createPlan ? 'active' : ''}`}
+                                onClick={() => handleModeChange(false)}
+                                title="Fast Generation: Execute directly"
+                            >
+                                <Zap size={14} />
+                                <span>Fast</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`mode-pill-btn ${createPlan ? 'active' : ''}`}
+                                onClick={() => handleModeChange(true)}
+                                title="Planning Mode: Create an outline first"
+                            >
+                                <Map size={14} />
+                                <span>Plan</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="right-actions">
+                        <div className="upload-trigger">
+                            <FileUpload
+                                onFileSelect={setContextFile}
+                                disabled={disabled}
+                                compact={true}
+                                triggerIcon={<Paperclip size={20} />}
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className={`send-fab ${message.trim() ? 'ready' : ''}`}
+                            disabled={!message.trim() || disabled}
+                            title="Send"
+                        >
+                            <Send size={20} />
+                        </button>
+                    </div>
+                </div>
             </form>
+
+            <div className="input-footer">
+                {/* Minimal footer since controls are inline now */}
+            </div>
         </div>
     );
 }

@@ -1,58 +1,67 @@
 'use client';
 
+import { useState } from 'react';
 import ChatContainer from '@/components/chat/ChatContainer';
+import { DocumentType } from '@/lib/types';
+import { FileText, Database, Server, Component, Sparkles, MessageSquare, Plus, Github } from 'lucide-react';
 
 export default function Home() {
+  const [initialAction, setInitialAction] = useState<{
+    type: DocumentType;
+    message?: string;
+    createPlan?: boolean;
+  } | null>(null);
+
+  const handleTypeSelect = (type: DocumentType) => {
+    setInitialAction({ type });
+    setTimeout(() => setInitialAction(null), 100);
+  };
+
   return (
     <main className="app-main">
-      <header className="app-header">
-        <div className="header-content">
-          <div className="logo">
-            <span className="logo-icon">📝</span>
-            <h1>Technical Doc Generator</h1>
-          </div>
-          <nav className="header-nav">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="nav-link">
-              GitHub
-            </a>
-            <a href="/api/docs" target="_blank" className="nav-link">
-              API Docs
-            </a>
-          </nav>
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <button className="new-chat-btn" onClick={() => window.location.reload()}>
+            <Plus size={20} />
+            <span>New document</span>
+          </button>
         </div>
-      </header>
 
-      <div className="main-content">
-        <aside className="sidebar">
-          <div className="sidebar-section">
-            <h3>Document Types</h3>
-            <ul className="type-list">
-              <li><span>📋</span> SRS</li>
-              <li><span>📄</span> Functional Spec</li>
-              <li><span>🔌</span> API Docs</li>
-              <li><span>🏗️</span> Architecture</li>
-            </ul>
-          </div>
+        <div className="sidebar-section">
+          <h3>Templates</h3>
+          <ul className="nav-list">
+            <li onClick={() => handleTypeSelect(DocumentType.SRS)} className="nav-item">
+              <FileText size={18} /> <span>SRS</span>
+            </li>
+            <li onClick={() => handleTypeSelect(DocumentType.FUNCTIONAL_SPEC)} className="nav-item">
+              <Database size={18} /> <span>Functional Spec</span>
+            </li>
+            <li onClick={() => handleTypeSelect(DocumentType.API_DOCS)} className="nav-item">
+              <Server size={18} /> <span>API Docs</span>
+            </li>
+            <li onClick={() => handleTypeSelect(DocumentType.ARCHITECTURE)} className="nav-item">
+              <Component size={18} /> <span>Architecture</span>
+            </li>
+            <li onClick={() => handleTypeSelect(DocumentType.GENERAL)} className="nav-item">
+              <Sparkles size={18} /> <span>General</span>
+            </li>
+          </ul>
+        </div>
 
-          <div className="sidebar-section">
-            <h3>Features</h3>
-            <ul className="feature-list">
-              <li>✨ Mermaid diagrams</li>
-              <li>📚 Context7 integration</li>
-              <li>🔍 Knowledge base RAG</li>
-              <li>✅ Auto-validation</li>
-            </ul>
-          </div>
+        <div className="sidebar-footer">
+          <a href="https://github.com" target="_blank" className="nav-link-footer">
+            <Github size={16} /> GitHub
+          </a>
+          <div className="powered-by">Powered by Bedrock</div>
+        </div>
+      </aside>
 
-          <div className="sidebar-footer">
-            <p>Powered by Amazon Bedrock</p>
-          </div>
-        </aside>
-
-        <section className="chat-section">
-          <ChatContainer />
-        </section>
-      </div>
+      <section className="main-view">
+        <header className="mobile-header">
+          <h1>Tech Docs</h1>
+        </header>
+        <ChatContainer initialAction={initialAction} />
+      </section>
     </main>
   );
 }

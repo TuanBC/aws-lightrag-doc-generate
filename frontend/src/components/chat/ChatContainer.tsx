@@ -1,19 +1,30 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ChatMessage, DocumentType, PlanStatus } from '@/lib/types';
 import api from '@/lib/api';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
+import { Rocket, FileText, Server, MessageSquare, Check, Sparkles, Zap, Map } from 'lucide-react';
 
 function generateId(): string {
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
-export default function ChatContainer() {
+interface ChatContainerProps {
+    initialAction?: {
+        type: DocumentType;
+        message?: string;
+        createPlan?: boolean;
+    } | null;
+}
+
+export default function ChatContainer({ initialAction }: ChatContainerProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [activePlan, setActivePlan] = useState<string | null>(null);
+    const [currentDocType, setCurrentDocType] = useState<DocumentType>(DocumentType.SRS);
+    const [isGuidedMode, setIsGuidedMode] = useState(false);
 
     const addMessage = useCallback((role: ChatMessage['role'], content: string, metadata?: ChatMessage['metadata']) => {
         const message: ChatMessage = {
@@ -41,32 +52,25 @@ export default function ChatContainer() {
             context?: string;
         }
     ) => {
-        // Add user message
         addMessage('user', message, { documentType: options?.documentType });
-
-        // Add loading assistant message
         const assistantId = addMessage('assistant', '', { isLoading: true });
         setIsLoading(true);
 
         try {
             if (options?.createPlan) {
-                // Planning workflow
                 const plan = await api.createPlan(message);
                 setActivePlan(plan.plan_id);
-
                 const planContent = formatPlanResponse(plan);
                 updateMessage(assistantId, {
                     content: planContent,
                     metadata: { isLoading: false, planId: plan.plan_id },
                 });
             } else {
-                // Direct generation
                 const result = await api.generateDocument({
                     document_type: options?.documentType || DocumentType.SRS,
                     requirements: message,
                     additional_context: options?.context,
                 });
-
                 updateMessage(assistantId, {
                     content: result.content,
                     metadata: { isLoading: false, documentType: result.document_type },
@@ -85,9 +89,23 @@ export default function ChatContainer() {
         }
     };
 
+    useEffect(() => {
+        if (initialAction) {
+            setCurrentDocType(initialAction.type);
+            if (initialAction.createPlan !== undefined) {
+                setIsGuidedMode(initialAction.createPlan);
+            }
+            if (initialAction.message) {
+                handleSend(initialAction.message, {
+                    documentType: initialAction.type,
+                    createPlan: initialAction.createPlan
+                });
+            }
+        }
+    }, [initialAction]);
+
     const handlePlanAction = async (action: 'approve' | 'comment' | 'generate', comment?: string) => {
         if (!activePlan) return;
-
         const assistantId = addMessage('assistant', '', { isLoading: true });
         setIsLoading(true);
 
@@ -104,10 +122,7 @@ export default function ChatContainer() {
                     await api.approvePlan(activePlan);
                     plan = await api.generateFromPlan(activePlan);
                     if (plan.status === PlanStatus.COMPLETED && plan.final_document) {
-                        updateMessage(assistantId, {
-                            content: plan.final_document,
-                            metadata: { isLoading: false },
-                        });
+                        updateMessage(assistantId, { content: plan.final_document, metadata: { isLoading: false } });
                         setActivePlan(null);
                         return;
                     }
@@ -115,10 +130,7 @@ export default function ChatContainer() {
                 case 'generate':
                     plan = await api.generateFromPlan(activePlan);
                     if (plan.final_document) {
-                        updateMessage(assistantId, {
-                            content: plan.final_document,
-                            metadata: { isLoading: false },
-                        });
+                        updateMessage(assistantId, { content: plan.final_document, metadata: { isLoading: false } });
                         setActivePlan(null);
                         return;
                     }
@@ -146,12 +158,64 @@ export default function ChatContainer() {
 
     return (
         <div className="chat-container">
-            <MessageList messages={messages} />
+            {messages.length === 0 ? (
+                <div className="empty-state">
+                    <div className="welcome-header">
+                        <span className="greeting">Hello there</span>
+                        <h2>What would you like to build?</h2>
+                    </div>
+
+                    <div className="quick-actions">
+                        <div className="action-card" onClick={() => {
+                            setCurrentDocType(DocumentType.SRS);
+                            setIsGuidedMode(false);
+                        }}>
+                            <div className="card-header-icon">
+                                <Rocket size={20} />
+                                <span className="mode-badge fast"><Zap size={10} /> Fast</span>
+                            </div>
+                            <h3>Quick SRS</h3>
+                        </div>
+                        <div className="action-card" onClick={() => {
+                            setCurrentDocType(DocumentType.SRS);
+                            setIsGuidedMode(true);
+                        }}>
+                            <div className="card-header-icon">
+                                <Sparkles size={20} />
+                                <span className="mode-badge planning"><Map size={10} /> Planning</span>
+                            </div>
+                            <h3>SRS with Plan</h3>
+                        </div>
+                        <div className="action-card" onClick={() => {
+                            setCurrentDocType(DocumentType.API_DOCS);
+                            setIsGuidedMode(false);
+                        }}>
+                            <div className="card-header-icon">
+                                <Server size={20} />
+                                <span className="mode-badge fast"><Zap size={10} /> Fast</span>
+                            </div>
+                            <h3>API Docs</h3>
+                        </div>
+                        <div className="action-card" onClick={() => {
+                            setCurrentDocType(DocumentType.GENERAL);
+                            setIsGuidedMode(false);
+                        }}>
+                            <div className="card-header-icon">
+                                <FileText size={20} />
+                                <span className="mode-badge fast"><Zap size={10} /> Fast</span>
+                            </div>
+                            <h3>General</h3>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <MessageList messages={messages} />
+            )}
 
             {activePlan && (
                 <div className="plan-actions">
-                    <button onClick={() => handlePlanAction('approve')} disabled={isLoading}>
-                        ✅ Approve & Generate
+                    <button onClick={() => handlePlanAction('approve')} disabled={isLoading} className="action-btn primary">
+                        <Check size={16} /> Approve & Generate
                     </button>
                     <button
                         onClick={() => {
@@ -159,19 +223,29 @@ export default function ChatContainer() {
                             if (comment) handlePlanAction('comment', comment);
                         }}
                         disabled={isLoading}
+                        className="action-btn secondary"
                     >
-                        💬 Add Feedback
+                        <MessageSquare size={16} /> Add Feedback
                     </button>
                 </div>
             )}
 
-            <ChatInput onSend={handleSend} disabled={isLoading} />
+            <ChatInput
+                onSend={handleSend}
+                disabled={isLoading}
+                initialDocumentType={currentDocType}
+                initialCreatePlan={isGuidedMode}
+                onOptionChange={(type, plan) => {
+                    setCurrentDocType(type);
+                    setIsGuidedMode(plan);
+                }}
+            />
         </div>
     );
 }
 
 function formatPlanResponse(plan: { title: string; sections: Array<{ title: string; description: string; subsections: string[] }>; status: string }) {
-    let content = `## 📋 Document Plan: ${plan.title}\n\n`;
+    let content = `## Document Plan: ${plan.title}\n\n`;
     content += `**Status:** ${plan.status.replace('_', ' ')}\n\n`;
     content += `### Proposed Outline\n\n`;
 
