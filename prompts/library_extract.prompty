@@ -1,0 +1,17 @@
+---
+name: Library Name Extractor
+description: Extract library/framework/API name from user query for Context7 lookup
+model: amazon.nova-pro-v1:0
+parameters:
+  temperature: 0.1
+  max_tokens: 50
+---
+
+Extract the library, framework, or API name from the following query.
+
+Return ONLY the library name in lowercase (e.g., "stripe", "react", "fastapi", "next.js").
+If no specific library or framework is mentioned, return exactly "none".
+
+Query: {{ query }}
+
+Library name:

@@ -137,6 +137,9 @@ async def generate_document_stream(
     - done: Generation complete
     - error: Error occurred
     """
+    from app.core.config import get_settings
+
+    settings = get_settings()
 
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
@@ -144,19 +147,49 @@ async def generate_document_stream(
             doc_type = DocumentType(request.document_type.value)
             steps: list[ToolStep] = []
 
-            # Step 1: Context7 Library Lookup
-            if request.library_name:
+            # Effective library name (from request or extracted from query)
+            library_name = request.library_name
+
+            # Step 0: Extract library name from query if not provided
+            if not library_name and request.requirements:
                 step = ToolStep(
-                    tool_name="resolve-library-id",
-                    parameters={"libraryName": request.library_name},
+                    tool_name="extract-library-name",
+                    parameters={"query": request.requirements[:80] + "..."},
                     status="running",
                 )
                 yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
 
-                # Actually fetch context
-                library_context = await generator._get_library_context(
-                    request.library_name, request.topics
+                # Use LLM to extract library/framework name
+                from app.core.prompts import load_prompt
+
+                extraction_prompt = load_prompt("library_extract", query=request.requirements)
+                extraction_response = await generator.llm.ainvoke(
+                    [{"role": "user", "content": extraction_prompt}]
                 )
+                extracted = generator._extract_response_content(extraction_response).strip().lower()
+
+                if extracted and extracted != "none" and len(extracted) < 50:
+                    library_name = extracted
+                    step.status = "done"
+                    step.result_summary = f"Extracted: {library_name}"
+                else:
+                    step.status = "done"
+                    step.result_summary = "No specific library detected"
+
+                steps.append(step)
+                yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
+
+            # Step 1: Context7 Library Lookup (if we have a library name)
+            if library_name:
+                step = ToolStep(
+                    tool_name="resolve-library-id",
+                    parameters={"libraryName": library_name},
+                    status="running",
+                )
+                yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
+
+                # Actually fetch context from Context7
+                library_context = await generator._get_library_context(library_name, request.topics)
 
                 step.status = "done"
                 step.result_summary = f"Found {len(library_context)} chars of documentation"
@@ -179,17 +212,17 @@ async def generate_document_stream(
                 steps.append(step)
                 yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
 
-            # Step 3: LLM Generation
+            # Step 3: LLM Generation (use actual model from config)
             step = ToolStep(
                 tool_name="generate-document",
-                parameters={"type": doc_type.value, "model": "Claude 3.5 Sonnet"},
+                parameters={"type": doc_type.value, "model": settings.bedrock_model_id},
                 status="running",
             )
             yield f"data: {StreamEvent(event_type='step', step=step).model_dump_json()}\n\n"
 
             result = await generator.generate(
                 document_type=doc_type,
-                library_name=request.library_name,
+                library_name=library_name,  # Use extracted library name
                 requirements=request.requirements,
                 topics=request.topics,
                 additional_context=request.additional_context,
@@ -205,7 +238,7 @@ async def generate_document_stream(
                 document_type=request.document_type,
                 title=result.title,
                 content=result.content,
-                library_name=result.library_name,
+                library_name=result.library_name or library_name,
                 topics=result.topics,
                 generated_at=result.generated_at,
                 metadata=result.metadata,
