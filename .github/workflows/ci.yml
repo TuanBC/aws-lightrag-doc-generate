@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, rag_anything ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, rag_anything ]
   workflow_dispatch:  # Allow manual triggering
 
 # Note: AWS deployment is handled by aws-deploy.yml workflow

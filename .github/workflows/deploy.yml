@@ -2,7 +2,7 @@ name: Deploy to AWS Lambda
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, rag_anything ]
   workflow_dispatch:
     inputs:
       bootstrap:
