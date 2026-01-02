@@ -1,0 +1,12 @@
+{
+  "doc-d48fe04620553e5f31225a0fc7183512": {
+    "status": "pending",
+    "content_summary": "Test document content",
+    "content_length": 21,
+    "created_at": "2026-01-02T16:47:40.162777+00:00",
+    "updated_at": "2026-01-02T16:47:40.162777+00:00",
+    "file_path": "unknown_source",
+    "track_id": "insert_20260102_234740_0767cead",
+    "chunks_list": []
+  }
+}

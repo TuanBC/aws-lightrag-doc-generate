@@ -655,3 +655,104 @@ async def generate_from_plan(plan_id: str):
         user_comments=plan.user_comments,
         final_document=plan.final_document,
     )
+
+
+# =============================================================================
+# RAG-Anything v2 API (Multimodal RAG)
+# =============================================================================
+
+
+@router.post(
+    "/v2/rag/index/text",
+    summary="Index text content in RAG-Anything",
+)
+async def rag_index_text(content: str, doc_id: str | None = None):
+    """
+    Index text/markdown content in the multimodal RAG system.
+
+    Uses LightRAG + RAG-Anything with Amazon Nova Pro and Titan embeddings.
+    """
+    try:
+        from app.services.raganything_service import RAGAnythingService
+
+        service = await RAGAnythingService().initialize()
+        result = await service.insert_text(content, doc_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Indexing failed: {str(e)}")
+
+
+@router.post(
+    "/v2/rag/index/file",
+    summary="Index multimodal document (PDF/image/markdown)",
+)
+async def rag_index_file(file_path: str, doc_id: str | None = None):
+    """
+    Index a multimodal document file.
+
+    Supports: PDF, images (PNG/JPG), markdown files.
+    Uses MinerU for document parsing and Nova Pro for vision understanding.
+    """
+    try:
+        from app.services.raganything_service import RAGAnythingService
+
+        service = await RAGAnythingService().initialize()
+        result = await service.insert_document(file_path, doc_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Indexing failed: {str(e)}")
+
+
+@router.get(
+    "/v2/rag/query",
+    summary="Query RAG-Anything with hybrid retrieval",
+)
+async def rag_query(query: str, mode: str = "hybrid", top_k: int = 5):
+    """
+    Query the multimodal knowledge graph.
+
+    Modes:
+    - local: Entity-focused retrieval
+    - global: Thematic/summary retrieval
+    - hybrid: Combined local + global (recommended)
+    - naive: Simple vector similarity
+    """
+    try:
+        from app.services.raganything_service import RAGAnythingService
+
+        service = await RAGAnythingService().initialize()
+        result = await service.query(query, mode=mode, top_k=top_k)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+@router.get(
+    "/v2/rag/stats",
+    summary="Get RAG-Anything index statistics",
+)
+async def rag_stats():
+    """Get statistics about the RAG-Anything index."""
+    try:
+        from app.services.raganything_service import RAGAnythingService
+
+        service = await RAGAnythingService().initialize()
+        return await service.get_stats()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stats failed: {str(e)}")
+
+
+@router.delete(
+    "/v2/rag/clear",
+    summary="Clear RAG-Anything index",
+)
+async def rag_clear():
+    """Clear the entire RAG-Anything index (local and S3)."""
+    try:
+        from app.services.raganything_service import RAGAnythingService
+
+        service = await RAGAnythingService().initialize()
+        await service.clear()
+        return {"status": "cleared"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Clear failed: {str(e)}")

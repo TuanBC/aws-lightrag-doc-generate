@@ -35,6 +35,10 @@ dependencies = [
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
     "botocore[crt]>=1.41.2",
+    "lightrag-hku>=1.4.9.8",
+    "raganything>=1.2.8",
+    "aioboto3>=7.0.0",
+    "magic-pdf>=1.3.12",
 ]
 
 [project.optional-dependencies]

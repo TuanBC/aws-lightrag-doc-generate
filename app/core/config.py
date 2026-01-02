@@ -71,6 +71,16 @@ class Settings(BaseModel):
         description="S3 bucket for LightRAG graph index",
     )
 
+    # RAG-Anything (Multimodal RAG)
+    rag_working_dir: Path = Field(
+        default=Path(os.getenv("RAG_WORKING_DIR", "/tmp/rag_data")),
+        description="Local working directory for RAG index files",
+    )
+    rag_s3_prefix: str = Field(
+        default=os.getenv("RAG_S3_PREFIX", "raganything/"),
+        description="S3 prefix for syncing RAG index",
+    )
+
     # OpenRouter (optional fallback)
     openrouter_api_key: Optional[str] = Field(
         default=os.getenv("OPENROUTER_API_KEY"),
