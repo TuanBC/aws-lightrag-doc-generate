@@ -1785,3 +1785,96 @@ select {
   max-width: 100%;
   height: auto;
 }
+
+/* ============================================
+   Microsite Layout - Simplified DocGen UI
+   ============================================ */
+
+.microsite {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg-primary);
+}
+
+.microsite-header {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
+}
+
+.microsite-header .logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.microsite-header .logo h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, var(--accent-primary), #E6b9de);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+}
+
+.microsite-header .logo svg {
+  color: var(--accent-primary);
+}
+
+.microsite-header .tagline {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.chat-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Redo empty state for microsite */
+.microsite .empty-state {
+  padding: 2rem 1rem 10rem;
+}
+
+.microsite .welcome-header {
+  margin-bottom: 2rem;
+}
+
+.microsite .greeting {
+  font-size: 2.5rem;
+}
+
+/* Input at bottom - microsite style */
+.microsite .chat-input-wrapper {
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+  padding: 1rem;
+}
+
+.microsite .gemini-input-container {
+  background: var(--bg-tertiary);
+  max-width: 800px;
+}
+
+/* Mobile responsiveness for microsite */
+@media (max-width: 640px) {
+  .microsite-header {
+    padding: 1.5rem 1rem 1rem;
+  }
+
+  .microsite-header .logo h1 {
+    font-size: 1.5rem;
+  }
+
+  .microsite .greeting {
+    font-size: 1.75rem;
+  }
+}
