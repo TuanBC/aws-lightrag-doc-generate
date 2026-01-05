@@ -228,6 +228,10 @@ resource "aws_lambda_function" "app" {
       TMPDIR             = "/tmp"
       HOME               = "/tmp"
       GIT_TEMPLATE_DIR   = "/tmp/git-template"
+      XDG_CONFIG_HOME    = "/tmp/.config"
+      GIT_CONFIG_NOSYSTEM = "1"
+      # Tell GitPython explicitly where git is
+      GIT_PYTHON_GIT_EXECUTABLE = "/usr/bin/git"
     }
   }
 
