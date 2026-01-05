@@ -7,8 +7,14 @@ RUN dnf install -y git && dnf clean all
 # Verify git is installed and show its location
 RUN git --version && ls -la /usr/bin/git
 
-# Ensure /usr/bin is in PATH (should be, but explicit for GitPython)
+# Set environment variables for git and GitPython
+# CRITICAL: These must be set at Docker level, not at runtime,
+# because GitPython checks for git during Python module import
 ENV PATH="/usr/bin:${PATH}"
+ENV GIT_PYTHON_GIT_EXECUTABLE="/usr/bin/git"
+ENV HOME="/tmp"
+ENV TMPDIR="/tmp"
+ENV GIT_CONFIG_NOSYSTEM="1"
 
 # Install uv for faster dependency installation
 RUN pip install uv
