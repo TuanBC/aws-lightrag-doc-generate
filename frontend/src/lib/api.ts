@@ -237,6 +237,23 @@ class ApiClient {
         if (githubUrl) params.append('github_url', githubUrl);
         return this.fetch(`/api/v1/github/query?${params}`);
     }
+
+    async listGitHubRepos(): Promise<import('./types').RepoListResponse> {
+        return this.fetch('/api/v1/github/repos');
+    }
+
+    async deleteGitHubRepo(githubUrl: string): Promise<import('./types').RepoDeleteResponse> {
+        const params = new URLSearchParams({ github_url: githubUrl });
+        return this.fetch(`/api/v1/github/repos?${params}`, { method: 'DELETE' });
+    }
+
+    // Document Classification
+    async classifyRequest(request: string): Promise<import('./types').ClassifyResponse> {
+        return this.fetch('/api/v1/classify', {
+            method: 'POST',
+            body: JSON.stringify({ request }),
+        });
+    }
 }
 
 export const api = new ApiClient();

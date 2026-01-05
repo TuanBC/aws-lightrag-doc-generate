@@ -117,21 +117,21 @@ export default function ChatInput({
                         <div className="mode-pill-group">
                             <button
                                 type="button"
-                                className={`mode-pill-btn ${!createPlan ? 'active' : ''}`}
-                                onClick={() => handleModeChange(false)}
-                                title="Fast Generation: Execute directly"
-                            >
-                                <Zap size={14} />
-                                <span>Fast</span>
-                            </button>
-                            <button
-                                type="button"
                                 className={`mode-pill-btn ${createPlan ? 'active' : ''}`}
                                 onClick={() => handleModeChange(true)}
                                 title="Planning Mode: Create an outline first"
                             >
                                 <Map size={14} />
                                 <span>Plan</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`mode-pill-btn ${!createPlan ? 'active' : ''}`}
+                                onClick={() => handleModeChange(false)}
+                                title="Fast Generation: Execute directly"
+                            >
+                                <Zap size={14} />
+                                <span>Fast</span>
                             </button>
                         </div>
                     </div>

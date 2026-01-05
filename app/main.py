@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import api_router, web_router
@@ -31,9 +34,16 @@ Generate technical documentation (SRS, Functional Specs) with:
     app.include_router(web_router)
     app.include_router(api_router, prefix="/api")
 
-    # NOTE: CORS is handled by AWS Lambda Function URL configuration
-    # Do NOT add CORSMiddleware here - it causes duplicate headers (*, *)
-    # which browsers reject. See: aws/terraform/main.tf -> aws_lambda_function_url.cors
+    # CORS: For local development only (Lambda Function URL handles CORS in prod)
+    # Check if running locally (not on Lambda)
+    if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     if settings.static_dir.exists():
         app.mount(

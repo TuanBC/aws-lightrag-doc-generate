@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse, StreamingResponse
 
 from app.schemas import (
+    ClassifyRequest,
+    ClassifyResponse,
     CriticReportResponse,
     GeneratedDocumentResponse,
     GenerateDocumentRequest,
@@ -22,6 +24,7 @@ from app.schemas import (
     ValidationSeverity,
 )
 from app.services.critic_agent import CriticAgent
+from app.services.document_classifier_agent import DocumentClassifierAgent
 from app.services.document_generator import (
     DocumentGenerationError,
     DocumentGenerator,
@@ -41,6 +44,41 @@ router = APIRouter(tags=["Document Generation API"])
 async def health() -> HealthResponse:
     """Basic liveness probe."""
     return HealthResponse()
+
+
+# =============================================================================
+# Document Classification
+# =============================================================================
+
+
+@router.post(
+    "/v1/classify",
+    response_model=ClassifyResponse,
+    summary="Classify a request into a document type",
+)
+async def classify_request(request: ClassifyRequest) -> ClassifyResponse:
+    """
+    Analyze a user's request and determine the best document type.
+
+    Uses LLM to classify the request into:
+    - srs: Software Requirements Specification
+    - functional_spec: Functional Specification
+    - api_docs: API Documentation
+    - architecture: Architecture Documentation
+    - general: General Documentation
+    """
+    try:
+        classifier = DocumentClassifierAgent()
+        result = await classifier.classify(request.request)
+
+        return ClassifyResponse(
+            document_type=result.document_type.value,
+            confidence=result.confidence,
+            reasoning=result.reasoning,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Classification failed: {str(e)}")
 
 
 # =============================================================================
@@ -535,6 +573,49 @@ async def github_query(query: str, github_url: str | None = None, mode: str = "h
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+@router.get(
+    "/v1/github/repos",
+    summary="List all indexed GitHub repositories",
+)
+async def github_list_repos():
+    """
+    List all GitHub repositories that have been indexed into LightRAG.
+
+    Returns repository URLs with file counts and token estimates.
+    """
+    try:
+        from app.services.lightrag_service import LightRAGService
+
+        service = LightRAGService()
+        repos = await service.list_repos()
+        return {"repos": repos, "count": len(repos)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list repos: {str(e)}")
+
+
+@router.delete(
+    "/v1/github/repos",
+    summary="Delete a GitHub repository from the index",
+)
+async def github_delete_repo(github_url: str):
+    """
+    Delete all indexed documents for a specific GitHub repository.
+
+    This removes the repository's files, entities, and relationships from LightRAG.
+    """
+    try:
+        from app.services.lightrag_service import LightRAGService
+
+        service = LightRAGService()
+        result = await service.delete_repo(github_url)
+        return {
+            **result,
+            "message": f"Repository {github_url} deleted successfully",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
 
 
 # =============================================================================

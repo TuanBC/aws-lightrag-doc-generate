@@ -1,0 +1,52 @@
+---
+name: Document Type Classifier
+description: Classify user requests into supported document types
+model: amazon.nova-pro-v1:0
+parameters:
+  temperature: 0.3
+  max_tokens: 500
+---
+
+You are a document type classifier. Analyze the user's request and determine the most appropriate document type.
+
+## User Request
+
+{{ request }}
+
+## Available Document Types
+
+1. **srs** - Software Requirements Specification
+   - Keywords: requirements, SRS, software specification, system requirements, user requirements, functional requirements, non-functional requirements
+   - Use for: Defining what a system should do, user needs, acceptance criteria
+
+2. **functional_spec** - Functional Specification  
+   - Keywords: functional spec, features, user stories, feature specification, behavior specification
+   - Use for: Detailed feature descriptions, user stories, workflows, state diagrams
+
+3. **api_docs** - API Documentation
+   - Keywords: API, REST, endpoints, documentation, SDK, library docs, interface documentation
+   - Use for: Documenting APIs, endpoints, SDKs, libraries, code interfaces
+
+4. **architecture** - Architecture Documentation
+   - Keywords: architecture, system design, infrastructure, design document, technical design, deployment
+   - Use for: System diagrams, component design, deployment architecture, technical decisions
+
+5. **general** - General Documentation
+   - Keywords: documentation, guide, manual, runbook, how-to, tutorial, general
+   - Use for: Any other technical documentation that doesn't fit above categories
+
+## Task
+
+Analyze the request and respond with a JSON object:
+
+```json
+{
+  "document_type": "srs|functional_spec|api_docs|architecture|general",
+  "confidence": 0.0-1.0,
+  "reasoning": "Brief explanation of why this type was chosen"
+}
+```
+
+Choose the type that BEST matches the user's intent. If unclear, default to "general".
+
+## Response (JSON only):

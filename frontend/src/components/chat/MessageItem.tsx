@@ -130,15 +130,6 @@ export default function MessageItem({ message }: MessageItemProps) {
                     )}
                 </div>
 
-                {message.metadata?.documentType && (
-                    <div className="message-meta">
-                        <span className="meta-badge">
-                            📄 {message.metadata.documentType.replace('_', ' ').toUpperCase()}
-                        </span>
-                    </div>
-                )}
-
-
             </div>
         </div>
     );

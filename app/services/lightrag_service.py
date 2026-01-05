@@ -347,6 +347,79 @@ class LightRAGService:
             "relationships": len(index.relationships),
         }
 
+    async def list_repos(self) -> List[Dict[str, Any]]:
+        """List all indexed GitHub repositories with stats."""
+        index = await self._load_index()
+
+        # Group documents by repository URL
+        repos: Dict[str, Dict[str, Any]] = {}
+
+        for doc_id in index.documents.keys():
+            # doc_id format: "https://github.com/owner/repo#file_path"
+            if "#" in doc_id:
+                repo_url = doc_id.split("#")[0]
+                if repo_url.startswith("http"):
+                    if repo_url not in repos:
+                        repos[repo_url] = {
+                            "github_url": repo_url,
+                            "file_count": 0,
+                            "total_chars": 0,
+                        }
+                    # Don't count tree structure as a file
+                    if not doc_id.endswith("#tree"):
+                        repos[repo_url]["file_count"] += 1
+                    repos[repo_url]["total_chars"] += len(index.documents.get(doc_id, ""))
+
+        # Convert to list and estimate tokens
+        return [
+            {
+                **repo,
+                "estimated_tokens": repo["total_chars"] // 4,
+            }
+            for repo in repos.values()
+        ]
+
+    async def delete_repo(self, github_url: str) -> Dict[str, int]:
+        """Delete all documents for a specific GitHub repository."""
+        index = await self._load_index()
+
+        # Find all doc_ids for this repo
+        docs_to_delete = [
+            doc_id for doc_id in index.documents.keys() if doc_id.startswith(github_url + "#")
+        ]
+
+        # Find entities from these docs
+        entities_to_delete = [
+            key
+            for key, entity in index.entities.items()
+            if entity.source_doc and entity.source_doc.startswith(github_url + "#")
+        ]
+
+        # Delete documents
+        for doc_id in docs_to_delete:
+            del index.documents[doc_id]
+
+        # Delete entities
+        for key in entities_to_delete:
+            del index.entities[key]
+
+        # Delete relationships involving deleted entities
+        entity_names = {index.entities[k].name for k in entities_to_delete if k in index.entities}
+        index.relationships = [
+            r
+            for r in index.relationships
+            if r.source not in entity_names and r.target not in entity_names
+        ]
+
+        await self._save_index()
+
+        logger.info(f"Deleted {len(docs_to_delete)} documents for {github_url}")
+
+        return {
+            "deleted_documents": len(docs_to_delete),
+            "deleted_entities": len(entities_to_delete),
+        }
+
     async def clear(self) -> None:
         """Clear the entire index."""
         self._index = LightRAGIndex()

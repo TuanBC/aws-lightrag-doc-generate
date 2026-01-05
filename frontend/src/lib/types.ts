@@ -166,3 +166,29 @@ export interface GitQueryResponse {
     context: string;
 }
 
+// Knowledge Base Manager Types
+export interface IndexedRepo {
+    github_url: string;
+    file_count: number;
+    total_chars: number;
+    estimated_tokens: number;
+}
+
+export interface RepoListResponse {
+    repos: IndexedRepo[];
+    count: number;
+}
+
+export interface RepoDeleteResponse {
+    deleted_documents: number;
+    deleted_entities: number;
+    message: string;
+}
+
+// Document Classification
+export interface ClassifyResponse {
+    document_type: DocumentType;
+    confidence: number;
+    reasoning: string;
+}
+

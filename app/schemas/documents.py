@@ -290,3 +290,26 @@ class GitQueryResponse(BaseModel):
     query: str
     github_url: Optional[str] = None
     context: str
+
+
+# =============================================================================
+# Document Classification
+# =============================================================================
+
+
+class ClassifyRequest(BaseModel):
+    """Request to classify a user's document generation request."""
+
+    request: str = Field(
+        ...,
+        description="The user's request to classify",
+        examples=["Generate SRS for a mobile banking app"],
+    )
+
+
+class ClassifyResponse(BaseModel):
+    """Response from document type classification."""
+
+    document_type: DocumentType = Field(..., description="Detected document type")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score (0-1)")
+    reasoning: str = Field(..., description="Explanation for the classification")

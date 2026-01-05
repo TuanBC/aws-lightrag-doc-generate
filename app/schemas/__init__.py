@@ -2,6 +2,8 @@
 
 from .documents import (
     AddCommentRequest,
+    ClassifyRequest,
+    ClassifyResponse,
     CreatePlanRequest,
     CriticReportResponse,
     DocumentType,
@@ -44,4 +46,7 @@ __all__ = [
     # Streaming
     "ToolStep",
     "StreamEvent",
+    # Classification
+    "ClassifyRequest",
+    "ClassifyResponse",
 ]

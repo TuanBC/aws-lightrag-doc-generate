@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { ChatMessage, DocumentType, PlanStatus, ToolStep, PlanResponse } from '@/lib/types';
+import { ChatMessage, DocumentType, PlanStatus, ToolStep, PlanResponse, ClassifyResponse } from '@/lib/types';
 import api from '@/lib/api';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
 import PlanViewer, { SectionComment } from './PlanViewer';
-import { Rocket, FileText, Server, MessageSquare, Check, Sparkles, Zap, Map } from 'lucide-react';
+import RepoManager from './RepoManager';
+import { Rocket, FileText, Server, MessageSquare, Check, Sparkles, Zap, Map, Database } from 'lucide-react';
 
 function generateId(): string {
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -25,8 +26,10 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [activePlan, setActivePlan] = useState<string | null>(null);
     const [activePlanData, setActivePlanData] = useState<PlanResponse | null>(null);
-    const [currentDocType, setCurrentDocType] = useState<DocumentType>(DocumentType.SRS);
-    const [isGuidedMode, setIsGuidedMode] = useState(false);
+    const [currentDocType, setCurrentDocType] = useState<DocumentType>(DocumentType.GENERAL);
+    const [isGuidedMode, setIsGuidedMode] = useState(true); // Default to Planning mode
+    const [showRepoManager, setShowRepoManager] = useState(false);
+    const [classifierResult, setClassifierResult] = useState<ClassifyResponse | null>(null);
 
     const addMessage = useCallback((role: ChatMessage['role'], content: string, metadata?: ChatMessage['metadata']) => {
         const message: ChatMessage = {
@@ -83,6 +86,17 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
         setIsLoading(true);
 
         try {
+            // First, classify the request to detect document type
+            let detectedType = options?.documentType || DocumentType.GENERAL;
+            try {
+                const classification = await api.classifyRequest(message);
+                setClassifierResult(classification);
+                detectedType = classification.document_type;
+                console.log(`Classified as ${detectedType} with ${(classification.confidence * 100).toFixed(0)}% confidence`);
+            } catch (classifyError) {
+                console.warn('Classification failed, using default type:', classifyError);
+            }
+
             if (options?.createPlan) {
                 // Planning mode - use regular API
                 const plan = await api.createPlan(message);
@@ -268,45 +282,22 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
                     </div>
 
                     <div className="quick-actions">
-                        <div className="action-card" onClick={() => {
-                            setCurrentDocType(DocumentType.SRS);
-                            setIsGuidedMode(false);
-                        }}>
-                            <div className="card-header-icon">
-                                <Rocket size={20} />
-                                <span className="mode-badge fast"><Zap size={10} /> Fast</span>
-                            </div>
-                            <h3>Quick SRS</h3>
-                        </div>
-                        <div className="action-card" onClick={() => {
-                            setCurrentDocType(DocumentType.SRS);
-                            setIsGuidedMode(true);
-                        }}>
-                            <div className="card-header-icon">
-                                <Sparkles size={20} />
-                                <span className="mode-badge planning"><Map size={10} /> Planning</span>
-                            </div>
-                            <h3>SRS with Plan</h3>
-                        </div>
-                        <div className="action-card" onClick={() => {
-                            setCurrentDocType(DocumentType.API_DOCS);
-                            setIsGuidedMode(false);
-                        }}>
-                            <div className="card-header-icon">
-                                <Server size={20} />
-                                <span className="mode-badge fast"><Zap size={10} /> Fast</span>
-                            </div>
-                            <h3>API Docs</h3>
-                        </div>
-                        <div className="action-card" onClick={() => {
+                        <div className="action-card create-doc-card" onClick={() => {
                             setCurrentDocType(DocumentType.GENERAL);
-                            setIsGuidedMode(false);
+                            setIsGuidedMode(true); // Planning mode by default
                         }}>
                             <div className="card-header-icon">
-                                <FileText size={20} />
-                                <span className="mode-badge fast"><Zap size={10} /> Fast</span>
+                                <Sparkles size={24} />
                             </div>
-                            <h3>General</h3>
+                            <h3>Create Document</h3>
+                            <p className="card-description">AI will detect the type and create a plan</p>
+                        </div>
+                        <div className="action-card knowledge-card" onClick={() => setShowRepoManager(true)}>
+                            <div className="card-header-icon">
+                                <Database size={24} />
+                            </div>
+                            <h3>Manage Knowledge</h3>
+                            <p className="card-description">Add GitHub repos to knowledge base</p>
                         </div>
                     </div>
                 </div>
@@ -333,6 +324,28 @@ export default function ChatContainer({ initialAction }: ChatContainerProps) {
                     setIsGuidedMode(plan);
                 }}
             />
+
+            {/* Classifier Result Badge */}
+            {classifierResult && (
+                <div className="classifier-result-badge">
+                    <span className="classifier-icon">🤖</span>
+                    <span className="classifier-text">
+                        Detected: <strong>{classifierResult.document_type.toUpperCase().replace('_', ' ')}</strong>
+                    </span>
+                    <span className="classifier-confidence">
+                        {(classifierResult.confidence * 100).toFixed(0)}% confident
+                    </span>
+                    <button
+                        className="classifier-dismiss"
+                        onClick={() => setClassifierResult(null)}
+                        title="Dismiss"
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
+
+            <RepoManager isOpen={showRepoManager} onClose={() => setShowRepoManager(false)} />
         </div>
     );
 }
