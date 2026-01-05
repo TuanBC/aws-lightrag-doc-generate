@@ -224,6 +224,10 @@ resource "aws_lambda_function" "app" {
       CONTEXT7_MCP_URL   = "https://mcp.context7.com/mcp"
       CONTEXT7_API_KEY   = var.context7_api_key
       LIGHTRAG_S3_BUCKET = aws_s3_bucket.lightrag_data.bucket
+      # Required for gitingest to work in Lambda (only /tmp is writable)
+      TMPDIR             = "/tmp"
+      HOME               = "/tmp"
+      GIT_TEMPLATE_DIR   = "/tmp/git-template"
     }
   }
 
@@ -307,6 +311,11 @@ output "frontend_bucket_url" {
 output "frontend_bucket_name" {
   description = "S3 bucket name for frontend deployment"
   value       = aws_s3_bucket.frontend.bucket
+}
+
+output "lightrag_bucket_url" {
+  description = "S3 bucket for LightRAG graph index"
+  value       = "http://${aws_s3_bucket.lightrag_data.bucket}.s3-website-${var.aws_region}.amazonaws.com"
 }
 
 output "lightrag_bucket_name" {
