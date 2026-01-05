@@ -6,14 +6,12 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import numpy as np
-
 from fastapi import HTTPException
 
+from app.services.cache import InMemoryTTLCache
 from services.credit_scoring_service import CreditScoringService
 from services.etherscan_service import EtherscanService
 from services.offchain_data_generator import OffchainDataGenerator
-
-from app.services.cache import InMemoryTTLCache
 
 
 def _normalize_wallet_address(address: str) -> str:
@@ -93,9 +91,7 @@ class ScoringEngine:
             if cached:
                 return cached
 
-        transactions = await self.etherscan_service.fetch_transactions(
-            normalized_address
-        )
+        transactions = await self.etherscan_service.fetch_transactions(normalized_address)
         if not transactions:
             result = ScoreComputation(
                 wallet_address=normalized_address,
@@ -109,13 +105,9 @@ class ScoringEngine:
                 self.cache.set(normalized_address, result)
             return result
 
-        features = self.credit_scoring_service.extract_features(
-            transactions, normalized_address
-        )
+        features = self.credit_scoring_service.extract_features(transactions, normalized_address)
         features = _to_native(features)
-        credit_score = float(
-            self.credit_scoring_service.calculate_scorecard_credit_score(features)
-        )
+        credit_score = float(self.credit_scoring_service.calculate_scorecard_credit_score(features))
 
         # Extract time-series data for charts
         time_series_data = self.credit_scoring_service.extract_time_series_data(

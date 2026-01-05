@@ -2,10 +2,11 @@
 Credit scoring service for calculating credit scores from wallet features.
 """
 
-import pandas as pd
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
 import math
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
 
 
 class CreditScoringService:
@@ -34,9 +35,7 @@ class CreditScoringService:
         required_fields = ["timeStamp", "value", "from", "to"]
         missing_fields = [f for f in required_fields if f not in df.columns]
         if missing_fields:
-            raise ValueError(
-                f"Missing required fields in transaction data: {missing_fields}"
-            )
+            raise ValueError(f"Missing required fields in transaction data: {missing_fields}")
 
         # Convert data types
         df["timeStamp"] = pd.to_numeric(df["timeStamp"], errors="coerce")
@@ -56,9 +55,7 @@ class CreditScoringService:
         features = {}
 
         # Basic features
-        features["account_age_days"] = (
-            df["timeStamp"].max() - df["timeStamp"].min()
-        ).days
+        features["account_age_days"] = (df["timeStamp"].max() - df["timeStamp"].min()).days
         features["total_transactions"] = len(df)
         features["avg_tx_per_month"] = len(df) / max(
             1, ((df["timeStamp"].max() - df["timeStamp"].min()).days / 30)
@@ -68,15 +65,9 @@ class CreditScoringService:
             return x / 1e18 if x is not None else 0
 
         # ETH flow features
-        features["total_eth_sent"] = wei_to_eth(
-            df[df["from"] == wallet_address]["value"].sum()
-        )
-        features["total_eth_received"] = wei_to_eth(
-            df[df["to"] == wallet_address]["value"].sum()
-        )
-        features["net_eth_change"] = (
-            features["total_eth_received"] - features["total_eth_sent"]
-        )
+        features["total_eth_sent"] = wei_to_eth(df[df["from"] == wallet_address]["value"].sum())
+        features["total_eth_received"] = wei_to_eth(df[df["to"] == wallet_address]["value"].sum())
+        features["net_eth_change"] = features["total_eth_received"] - features["total_eth_sent"]
 
         # Transaction value features
         features["largest_tx_value"] = wei_to_eth(df["value"].max())
@@ -93,9 +84,7 @@ class CreditScoringService:
             df["input"].apply(lambda x: isinstance(x, str) and len(str(x)) > 2).sum()
         )
         features["contract_deployments"] = (
-            df["contractAddress"]
-            .apply(lambda x: isinstance(x, str) and len(str(x)) > 2)
-            .sum()
+            df["contractAddress"].apply(lambda x: isinstance(x, str) and len(str(x)) > 2).sum()
             if "contractAddress" in df.columns
             else 0
         )
@@ -109,8 +98,7 @@ class CreditScoringService:
         # Activity features
         features["active_days"] = df["timeStamp"].dt.date.nunique()
         features["days_since_last_tx"] = (
-            datetime.now(timezone.utc)
-            - df["timeStamp"].max().replace(tzinfo=timezone.utc)
+            datetime.now(timezone.utc) - df["timeStamp"].max().replace(tzinfo=timezone.utc)
         ).days
 
         # Transaction patterns
@@ -134,9 +122,7 @@ class CreditScoringService:
 
         # Counterparty diversity (entropy)
         all_counterparties = list(counterparties)
-        cp_counts = [
-            ((df["to"] == cp) | (df["from"] == cp)).sum() for cp in all_counterparties
-        ]
+        cp_counts = [((df["to"] == cp) | (df["from"] == cp)).sum() for cp in all_counterparties]
         total_cp = sum(cp_counts)
         entropy = (
             -sum((c / total_cp) * math.log2(c / total_cp) for c in cp_counts if c > 0)
@@ -168,9 +154,7 @@ class CreditScoringService:
             features["shortest_time_between_tx_seconds"] = (
                 time_diffs.min() if not time_diffs.empty else 0
             )
-            features["automated_activity"] = (
-                time_diffs.min() is not None and time_diffs.min() < 10
-            )
+            features["automated_activity"] = time_diffs.min() is not None and time_diffs.min() < 10
         else:
             features["avg_time_between_tx_days"] = 0
             features["std_time_between_tx_days"] = 0
@@ -182,9 +166,9 @@ class CreditScoringService:
         outgoing_count = df[df["from"] == wallet_address].shape[0]
         features["in_out_tx_count_ratio"] = incoming_count / max(1, outgoing_count)
         features["zero_value_tx_ratio"] = (df["value"] == 0).sum() / max(1, len(df))
-        features["unique_counterparty_tx_ratio"] = features[
-            "unique_counterparties"
-        ] / max(1, len(df))
+        features["unique_counterparty_tx_ratio"] = features["unique_counterparties"] / max(
+            1, len(df)
+        )
 
         # Repeat counterparty rate
         cp_all = pd.concat(
@@ -194,36 +178,28 @@ class CreditScoringService:
             ]
         )
         repeat_cp = (
-            cp_all.value_counts()[cp_all.value_counts() > 1].sum()
-            if not cp_all.empty
-            else 0
+            cp_all.value_counts()[cp_all.value_counts() > 1].sum() if not cp_all.empty else 0
         )
         features["repeat_counterparty_rate"] = repeat_cp / max(1, len(cp_all))
 
         # Contract ratios
-        features["contract_interaction_ratio"] = features[
-            "contract_interactions"
-        ] / max(1, len(df))
-        features["contract_deployments_to_interactions"] = features[
-            "contract_deployments"
-        ] / max(1, features["contract_interactions"])
+        features["contract_interaction_ratio"] = features["contract_interactions"] / max(1, len(df))
+        features["contract_deployments_to_interactions"] = features["contract_deployments"] / max(
+            1, features["contract_interactions"]
+        )
 
         # Statistical features
         df_eth_value = df["value"] / 1e18
         features["tx_value_skewness"] = df_eth_value.skew() if len(df) > 1 else 0
         features["tx_value_kurtosis"] = df_eth_value.kurtosis() if len(df) > 1 else 0
         median_val = features["median_tx_value"]
-        features["tx_above_median_ratio"] = (df_eth_value > median_val).sum() / max(
-            1, len(df)
-        )
+        features["tx_above_median_ratio"] = (df_eth_value > median_val).sum() / max(1, len(df))
 
         # Temporal features
         features["first_tx_weekday"] = (
             int(df["timeStamp"].min().dayofweek) if not df.empty else None
         )
-        features["last_tx_weekday"] = (
-            int(df["timeStamp"].max().dayofweek) if not df.empty else None
-        )
+        features["last_tx_weekday"] = int(df["timeStamp"].max().dayofweek) if not df.empty else None
         features["months_with_tx"] = df["timeStamp"].dt.to_period("M").nunique()
 
         # Failed transaction streak
@@ -242,9 +218,9 @@ class CreditScoringService:
         if "gasPrice" in df.columns:
             df["gasPrice"] = pd.to_numeric(df["gasPrice"], errors="coerce")
             max_gas_price = df["gasPrice"].max()
-            features["max_gas_price_tx_ratio"] = (
-                df["gasPrice"] == max_gas_price
-            ).sum() / max(1, len(df))
+            features["max_gas_price_tx_ratio"] = (df["gasPrice"] == max_gas_price).sum() / max(
+                1, len(df)
+            )
         else:
             features["max_gas_price_tx_ratio"] = 0
 
@@ -259,21 +235,16 @@ class CreditScoringService:
 
             dfx_sent = dfx[dfx["from"] == wallet_address]
             features[f"total_eth_sent_{label}"] = (
-                float(wei_to_eth(dfx_sent["value"].sum()))
-                if not dfx_sent.empty
-                else 0.0
+                float(wei_to_eth(dfx_sent["value"].sum())) if not dfx_sent.empty else 0.0
             )
 
             dfx_recv = dfx[dfx["to"] == wallet_address]
             features[f"total_eth_received_{label}"] = (
-                float(wei_to_eth(dfx_recv["value"].sum()))
-                if not dfx_recv.empty
-                else 0.0
+                float(wei_to_eth(dfx_recv["value"].sum())) if not dfx_recv.empty else 0.0
             )
 
             features[f"net_eth_change_{label}"] = (
-                features[f"total_eth_received_{label}"]
-                - features[f"total_eth_sent_{label}"]
+                features[f"total_eth_received_{label}"] - features[f"total_eth_sent_{label}"]
             )
 
             features[f"largest_tx_value_{label}"] = (
@@ -428,8 +399,7 @@ class CreditScoringService:
         # Hourly distribution (all-time)
         hourly_dist = df["timeStamp"].dt.hour.value_counts().sort_index()
         time_series["hourly_distribution"] = [
-            {"hour": int(hour), "count": int(count)}
-            for hour, count in hourly_dist.items()
+            {"hour": int(hour), "count": int(count)} for hour, count in hourly_dist.items()
         ]
 
         # Weekday distribution (all-time)
@@ -463,9 +433,7 @@ class CreditScoringService:
 
         value_distribution = []
         for i in range(len(buckets) - 1):
-            count = int(
-                ((eth_values >= buckets[i]) & (eth_values < buckets[i + 1])).sum()
-            )
+            count = int(((eth_values >= buckets[i]) & (eth_values < buckets[i + 1])).sum())
             value_distribution.append({"bucket": bucket_labels[i], "count": count})
 
         time_series["value_distribution"] = value_distribution

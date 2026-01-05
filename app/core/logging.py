@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging.config
 
-
 LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,

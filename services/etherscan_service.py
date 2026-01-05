@@ -2,7 +2,8 @@
 Etherscan API service for fetching wallet transaction data.
 """
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 import aiohttp
 from bs4 import BeautifulSoup
 
@@ -52,9 +53,7 @@ class EtherscanService:
                 "apikey": self.api_key,
             }
 
-            async with session.get(
-                self.ETHERSCAN_API_BASE, params=params, timeout=30
-            ) as resp:
+            async with session.get(self.ETHERSCAN_API_BASE, params=params, timeout=30) as resp:
                 if resp.status != 200:
                     text = await resp.text()
                     raise RuntimeError(f"Etherscan HTTP {resp.status}: {text}")
@@ -75,10 +74,7 @@ class EtherscanService:
                 # Handle error messages
                 if status == "0" and data.get("result") is None:
                     # If it's just "No transactions found", return empty list
-                    if (
-                        "No transactions found" in message
-                        or "No records found" in message
-                    ):
+                    if "No transactions found" in message or "No records found" in message:
                         return []
                     raise RuntimeError(f"Etherscan API error: {message}")
 

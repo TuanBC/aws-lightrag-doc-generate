@@ -6,7 +6,6 @@ import time
 from dataclasses import dataclass
 from typing import Dict, Generic, Optional, TypeVar
 
-
 T = TypeVar("T")
 
 

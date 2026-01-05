@@ -7,7 +7,7 @@ from on-chain behavior, providing independent data sources for credit analysis.
 """
 
 import random
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 class OffchainDataGenerator:
@@ -45,9 +45,7 @@ class OffchainDataGenerator:
 
         # Generate work experience
         years_of_experience = self._generate_experience(age, occupation, rng)
-        number_of_companies = self._generate_company_count(
-            years_of_experience, occupation, rng
-        )
+        number_of_companies = self._generate_company_count(years_of_experience, occupation, rng)
 
         # Generate social media metrics independently
         friend_count = self._generate_friend_count(age, rng)
@@ -127,9 +125,7 @@ class OffchainDataGenerator:
 
         return int(round(income / 50) * 50)  # Round to nearest 50
 
-    def _generate_experience(
-        self, age: int, occupation: str, rng: random.Random
-    ) -> float:
+    def _generate_experience(self, age: int, occupation: str, rng: random.Random) -> float:
         """Generate years of experience independently"""
         if occupation == "student":
             return round(rng.uniform(0.5, 2.5), 1)
@@ -170,9 +166,7 @@ class OffchainDataGenerator:
 
         return max(50, min(600, friends))
 
-    def _generate_post_frequency(
-        self, age: int, occupation: str, rng: random.Random
-    ) -> float:
+    def _generate_post_frequency(self, age: int, occupation: str, rng: random.Random) -> float:
         """Generate monthly post frequency independently"""
         # Base frequency with normal distribution (8-15 posts/month typical)
         base_frequency = rng.gauss(12, 4)
