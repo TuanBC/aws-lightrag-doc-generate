@@ -4,6 +4,12 @@ FROM public.ecr.aws/lambda/python:3.12
 # Install git (required for gitingest to clone repositories)
 RUN dnf install -y git && dnf clean all
 
+# Verify git is installed and show its location
+RUN which git && git --version && ls -la /usr/bin/git
+
+# Ensure /usr/bin is in PATH (should be, but explicit for GitPython)
+ENV PATH="/usr/bin:${PATH}"
+
 # Install uv for faster dependency installation
 RUN pip install uv
 
