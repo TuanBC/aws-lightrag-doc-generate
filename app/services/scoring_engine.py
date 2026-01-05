@@ -7,11 +7,11 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 from fastapi import HTTPException
-
-from app.services.cache import InMemoryTTLCache
 from services.credit_scoring_service import CreditScoringService
 from services.etherscan_service import EtherscanService
 from services.offchain_data_generator import OffchainDataGenerator
+
+from app.services.cache import InMemoryTTLCache
 
 
 def _normalize_wallet_address(address: str) -> str:
