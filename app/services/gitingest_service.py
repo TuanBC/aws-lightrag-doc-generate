@@ -34,6 +34,7 @@ class GitIngestService:
     """Service for extracting public GitHub repository content using file-level chunking."""
 
     MAX_TOKENS_PER_CHUNK = 4000  # Safe limit for LightRAG
+    MAX_FILE_SIZE_KB = 500  # Skip files larger than 500KB to avoid timeout on large repos
 
     async def ingest_repository(self, github_url: str) -> GitIngestResult:
         """
@@ -53,7 +54,11 @@ class GitIngestService:
 
         # Use sync version with to_thread for Windows compatibility
         # (ingest_async has subprocess issues on Windows event loop)
-        summary, tree, content = await asyncio.to_thread(ingest, github_url)
+        # Limit file size to avoid timeout on large repos
+        max_file_size_bytes = self.MAX_FILE_SIZE_KB * 1024
+        summary, tree, content = await asyncio.to_thread(
+            ingest, github_url, max_file_size=max_file_size_bytes
+        )
 
         # Parse content into file-level chunks
         files = self._parse_files(content)
