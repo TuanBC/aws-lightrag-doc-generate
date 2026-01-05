@@ -248,3 +248,45 @@ class PlanResponse(BaseModel):
     updated_at: str
     user_comments: List[str] = Field(default_factory=list)
     final_document: Optional[str] = None
+
+
+# =============================================================================
+# GitIngest - GitHub Repository Ingestion
+# =============================================================================
+
+
+class GitIngestRequest(BaseModel):
+    """Request to ingest a public GitHub repository."""
+
+    github_url: str = Field(
+        ...,
+        description="Public GitHub repository URL",
+        examples=["https://github.com/HKUDS/LightRAG"],
+    )
+
+
+class GitIngestResponse(BaseModel):
+    """Response from ingesting a GitHub repository."""
+
+    github_url: str
+    summary: str
+    file_count: int
+    total_tokens: int
+    documents_inserted: int
+    message: str = "Repository ingested successfully"
+
+
+class GitQueryRequest(BaseModel):
+    """Request to query an ingested GitHub repository."""
+
+    query: str = Field(..., description="Natural language query about the repo")
+    github_url: Optional[str] = Field(None, description="Filter to specific repo")
+    mode: str = Field("hybrid", description="Query mode: local, global, or hybrid")
+
+
+class GitQueryResponse(BaseModel):
+    """Response from querying a GitHub repository."""
+
+    query: str
+    github_url: Optional[str] = None
+    context: str

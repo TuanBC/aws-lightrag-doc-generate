@@ -1878,3 +1878,111 @@ select {
     font-size: 1.75rem;
   }
 }
+
+/* ============================================
+   GitHub Repository Ingestion Component
+   ============================================ */
+
+.github-ingest {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.github-ingest-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.github-ingest-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.github-ingest-input input {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.github-ingest-input input:focus {
+  border-color: var(--accent-primary);
+}
+
+.github-ingest-input input::placeholder {
+  color: var(--text-muted);
+}
+
+.github-ingest-button {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 1.25rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.github-ingest-button:hover:not(:disabled) {
+  background: #c9dcfc;
+  transform: translateY(-1px);
+}
+
+.github-ingest-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.github-ingest-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ff897d;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 137, 125, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.github-ingest-success {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #81c995;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(129, 201, 149, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.github-ingest-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.github-ingest-stats span {
+  color: inherit;
+}

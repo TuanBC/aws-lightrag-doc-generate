@@ -478,6 +478,66 @@ async def lightrag_stats():
 
 
 # =============================================================================
+# GitHub Repository Ingestion (GitIngest + LightRAG)
+# =============================================================================
+
+
+@router.post(
+    "/v1/github/ingest",
+    summary="Ingest a public GitHub repository into LightRAG",
+)
+async def github_ingest(github_url: str):
+    """
+    Ingest a public GitHub repository using GitIngest with file-level chunking.
+
+    Extracts the codebase content and embeds it into LightRAG for
+    graph-based retrieval and question answering.
+    """
+    try:
+        from app.services.gitingest_service import GitIngestService
+
+        service = GitIngestService()
+        result = await service.ingest_to_lightrag(github_url=github_url)
+        return {
+            **result,
+            "message": "Repository ingested successfully",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
+
+
+@router.get(
+    "/v1/github/query",
+    summary="Query an ingested GitHub repository",
+)
+async def github_query(query: str, github_url: str | None = None, mode: str = "hybrid"):
+    """
+    Query the knowledge graph about an ingested GitHub repository.
+
+    If github_url is provided, the query will include context about that specific repo.
+    """
+    try:
+        from app.services.lightrag_service import LightRAGService
+
+        service = LightRAGService()
+
+        # Optionally filter by repo in the query
+        enhanced_query = query
+        if github_url:
+            enhanced_query = f"About the repository {github_url}: {query}"
+
+        context = await service.query(enhanced_query, mode=mode)
+        return {
+            "query": query,
+            "github_url": github_url,
+            "mode": mode,
+            "context": context,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+# =============================================================================
 # Planning Agent - Document Structure Review Workflow
 # =============================================================================
 

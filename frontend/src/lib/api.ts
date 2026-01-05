@@ -221,7 +221,24 @@ class ApiClient {
         const params = new URLSearchParams({ query, mode, top_k: String(topK) });
         return this.fetch(`/api/v1/lightrag/query?${params}`);
     }
+
+    // GitHub Repository Ingestion
+    async ingestGitHubRepo(githubUrl: string): Promise<import('./types').GitIngestResponse> {
+        const params = new URLSearchParams({ github_url: githubUrl });
+        return this.fetch(`/api/v1/github/ingest?${params}`, { method: 'POST' });
+    }
+
+    async queryGitHubRepo(
+        query: string,
+        githubUrl?: string,
+        mode: string = 'hybrid'
+    ): Promise<import('./types').GitQueryResponse> {
+        const params = new URLSearchParams({ query, mode });
+        if (githubUrl) params.append('github_url', githubUrl);
+        return this.fetch(`/api/v1/github/query?${params}`);
+    }
 }
 
 export const api = new ApiClient();
 export default api;
+

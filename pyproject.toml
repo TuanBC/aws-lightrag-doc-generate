@@ -39,6 +39,8 @@ dependencies = [
     "raganything>=1.2.8",
     "aioboto3>=7.0.0",
     "magic-pdf>=1.3.12",
+    # GitIngest for GitHub repo extraction
+    "gitingest>=0.1.0",
 ]
 
 [project.optional-dependencies]

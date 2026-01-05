@@ -148,3 +148,21 @@ export interface FileUpload {
     content: string;
     type: string;
 }
+
+// GitHub Repository Ingestion Types
+export interface GitIngestResponse {
+    github_url: string;
+    summary: string;
+    file_count: number;
+    total_tokens: number;
+    documents_inserted: number;
+    message: string;
+}
+
+export interface GitQueryResponse {
+    query: string;
+    github_url?: string;
+    mode: string;
+    context: string;
+}
+
