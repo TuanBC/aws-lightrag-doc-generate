@@ -47,18 +47,55 @@ class GitIngestService:
             GitIngestResult with tree structure and file chunks
         """
         import asyncio
+        import os
+        import shutil
+        import subprocess
+        import traceback
 
         from gitingest import ingest
 
         logger.info(f"Ingesting public repository: {github_url}")
 
-        # Use sync version with to_thread for Windows compatibility
-        # (ingest_async has subprocess issues on Windows event loop)
-        # Limit file size to avoid timeout on large repos
-        max_file_size_bytes = self.MAX_FILE_SIZE_KB * 1024
-        summary, tree, content = await asyncio.to_thread(
-            ingest, github_url, max_file_size=max_file_size_bytes
-        )
+        # Debug: Check if git is available
+        git_path = shutil.which("git")
+        logger.info(f"Git path: {git_path}")
+
+        if not git_path:
+            # Try to find git in common locations
+            for path in ["/usr/bin/git", "/usr/local/bin/git"]:
+                if os.path.exists(path):
+                    git_path = path
+                    break
+
+        if not git_path:
+            raise RuntimeError("Git is not installed or not in PATH")
+
+        # Test git version
+        try:
+            result = subprocess.run(
+                [git_path, "--version"], capture_output=True, text=True, timeout=10
+            )
+            logger.info(f"Git version: {result.stdout.strip()}")
+        except Exception as e:
+            logger.error(f"Failed to run git: {e}")
+            raise RuntimeError(f"Git is not working: {e}")
+
+        # Log environment for debugging
+        logger.info(f"TMPDIR: {os.environ.get('TMPDIR', 'not set')}")
+        logger.info(f"HOME: {os.environ.get('HOME', 'not set')}")
+
+        try:
+            # Use sync version with to_thread for Windows compatibility
+            # (ingest_async has subprocess issues on Windows event loop)
+            # Limit file size to avoid timeout on large repos
+            max_file_size_bytes = self.MAX_FILE_SIZE_KB * 1024
+            summary, tree, content = await asyncio.to_thread(
+                ingest, github_url, max_file_size=max_file_size_bytes
+            )
+        except Exception as e:
+            logger.error(f"Gitingest failed: {e}")
+            logger.error(traceback.format_exc())
+            raise
 
         # Parse content into file-level chunks
         files = self._parse_files(content)
