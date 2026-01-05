@@ -57,8 +57,10 @@ class PromptLoader:
         # Replace {{ variable }} patterns
         for key, value in variables.items():
             # Handle both {{ var }} and {{var}} formats
+            # Handle both {{ var }} and {{var}} formats
             pattern = r"\{\{\s*" + re.escape(key) + r"\s*\}\}"
-            template = re.sub(pattern, str(value), template)
+            # Use lambda to avoid interpreting escapes in the replacement string
+            template = re.sub(pattern, lambda m: str(value), template)
 
         return template
 
