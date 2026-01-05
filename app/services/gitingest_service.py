@@ -3,9 +3,19 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from dataclasses import dataclass
 from typing import List
+
+# CRITICAL: Ensure git is findable in Lambda environment
+# Must be set BEFORE importing gitingest or GitPython
+if os.path.exists("/usr/bin/git"):
+    os.environ["GIT_PYTHON_GIT_EXECUTABLE"] = "/usr/bin/git"
+    os.environ["PATH"] = f"/usr/bin:{os.environ.get('PATH', '')}"
+    os.environ["HOME"] = "/tmp"
+    os.environ["TMPDIR"] = "/tmp"
+    os.environ["GIT_CONFIG_NOSYSTEM"] = "1"
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +78,14 @@ class GitIngestService:
                     break
 
         if not git_path:
-            raise RuntimeError("Git is not installed or not in PATH")
+            # List /usr/bin to debug
+            usr_bin_contents = os.listdir("/usr/bin") if os.path.exists("/usr/bin") else []
+            git_candidates = [f for f in usr_bin_contents if "git" in f.lower()]
+            raise RuntimeError(
+                f"Git is not installed or not in PATH. "
+                f"PATH={os.environ.get('PATH', 'unset')}. "
+                f"/usr/bin git-related files: {git_candidates}"
+            )
 
         # Test git version
         try:
