@@ -1,24 +1,24 @@
 # Lambda-optimized Dockerfile for FastAPI
 FROM public.ecr.aws/lambda/python:3.12
 
-# Install git (required for gitingest to clone repositories)
-RUN dnf install -y git && dnf clean all
+# # Install git (required for gitingest to clone repositories)
+# RUN dnf install -y git && dnf clean all
 
-# Verify git is installed and show its location
-RUN git --version && ls -la /usr/bin/git && which git
+# # Verify git is installed and show its location
+# RUN git --version && ls -la /usr/bin/git && which git
 
-# Create symlink to ensure git is in common PATH locations
-RUN ln -sf /usr/bin/git /usr/local/bin/git || true
+# # Create symlink to ensure git is in common PATH locations
+# RUN ln -sf /usr/bin/git /usr/local/bin/git || true
 
-# Set environment variables for git and GitPython
-# CRITICAL: These must be set at Docker level, not at runtime,
-# because GitPython checks for git during Python module import
-ENV PATH="/usr/bin:/usr/local/bin:${PATH}"
-ENV GIT_PYTHON_GIT_EXECUTABLE="/usr/bin/git"
-ENV GIT_EXEC_PATH="/usr/bin"
-ENV HOME="/tmp"
-ENV TMPDIR="/tmp"
-ENV GIT_CONFIG_NOSYSTEM="1"
+# # Set environment variables for git and GitPython
+# # CRITICAL: These must be set at Docker level, not at runtime,
+# # because GitPython checks for git during Python module import
+# ENV PATH="/usr/bin:/usr/local/bin:${PATH}"
+# ENV GIT_PYTHON_GIT_EXECUTABLE="/usr/bin/git"
+# ENV GIT_EXEC_PATH="/usr/bin"
+# ENV HOME="/tmp"
+# ENV TMPDIR="/tmp"
+# ENV GIT_CONFIG_NOSYSTEM="1"
 
 # Install uv for faster dependency installation
 RUN pip install uv
