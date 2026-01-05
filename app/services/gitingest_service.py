@@ -3,19 +3,9 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 from dataclasses import dataclass
 from typing import List
-
-# CRITICAL: Ensure git is findable in Lambda environment
-# Must be set BEFORE importing gitingest or GitPython
-if os.path.exists("/usr/bin/git"):
-    os.environ["GIT_PYTHON_GIT_EXECUTABLE"] = "/usr/bin/git"
-    os.environ["PATH"] = f"/usr/bin:{os.environ.get('PATH', '')}"
-    os.environ["HOME"] = "/tmp"
-    os.environ["TMPDIR"] = "/tmp"
-    os.environ["GIT_CONFIG_NOSYSTEM"] = "1"
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +38,10 @@ class GitIngestService:
 
     async def ingest_repository(self, github_url: str) -> GitIngestResult:
         """
-        Ingest a public GitHub repository and extract file-level chunks.
+        Ingest a public GitHub repository by downloading its ZIP archive.
+
+        This method downloads the repository as a ZIP file directly from GitHub,
+        avoiding the need for git to be installed (which is problematic in Lambda).
 
         Args:
             github_url: Public GitHub repository URL
@@ -56,75 +49,193 @@ class GitIngestService:
         Returns:
             GitIngestResult with tree structure and file chunks
         """
-        import asyncio
-        import os
-        import shutil
-        import subprocess
-        import traceback
+        import io
+        import zipfile
 
-        from gitingest import ingest
+        import httpx
 
         logger.info(f"Ingesting public repository: {github_url}")
 
-        # Debug: Check if git is available
-        git_path = shutil.which("git")
-        logger.info(f"Git path: {git_path}")
+        # Parse GitHub URL to get owner and repo
+        owner, repo = self._parse_github_url(github_url)
+        if not owner or not repo:
+            raise ValueError(f"Invalid GitHub URL: {github_url}")
 
-        if not git_path:
-            # Try to find git in common locations
-            for path in ["/usr/bin/git", "/usr/local/bin/git"]:
-                if os.path.exists(path):
-                    git_path = path
-                    break
+        # GitHub ZIP download URL (default branch)
+        zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/main.zip"
+        alt_zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/master.zip"
 
-        if not git_path:
-            # List /usr/bin to debug
-            usr_bin_contents = os.listdir("/usr/bin") if os.path.exists("/usr/bin") else []
-            git_candidates = [f for f in usr_bin_contents if "git" in f.lower()]
-            raise RuntimeError(
-                f"Git is not installed or not in PATH. "
-                f"PATH={os.environ.get('PATH', 'unset')}. "
-                f"/usr/bin git-related files: {git_candidates}"
-            )
+        logger.info(f"Downloading ZIP from: {zip_url}")
 
-        # Test git version
-        try:
-            result = subprocess.run(
-                [git_path, "--version"], capture_output=True, text=True, timeout=10
-            )
-            logger.info(f"Git version: {result.stdout.strip()}")
-        except Exception as e:
-            logger.error(f"Failed to run git: {e}")
-            raise RuntimeError(f"Git is not working: {e}")
+        # Download ZIP file
+        async with httpx.AsyncClient(follow_redirects=True, timeout=120.0) as client:
+            response = await client.get(zip_url)
 
-        # Log environment for debugging
-        logger.info(f"TMPDIR: {os.environ.get('TMPDIR', 'not set')}")
-        logger.info(f"HOME: {os.environ.get('HOME', 'not set')}")
+            # Try master branch if main doesn't exist
+            if response.status_code == 404:
+                logger.info("Main branch not found, trying master...")
+                response = await client.get(alt_zip_url)
 
-        try:
-            # Use sync version with to_thread for Windows compatibility
-            # (ingest_async has subprocess issues on Windows event loop)
-            # Limit file size to avoid timeout on large repos
-            max_file_size_bytes = self.MAX_FILE_SIZE_KB * 1024
-            summary, tree, content = await asyncio.to_thread(
-                ingest, github_url, max_file_size=max_file_size_bytes
-            )
-        except Exception as e:
-            logger.error(f"Gitingest failed: {e}")
-            logger.error(traceback.format_exc())
-            raise
+            if response.status_code != 200:
+                raise RuntimeError(f"Failed to download repository: HTTP {response.status_code}")
 
-        # Parse content into file-level chunks
-        files = self._parse_files(content)
+            zip_content = response.content
+            logger.info(f"Downloaded {len(zip_content) / 1024:.1f} KB")
+
+        # Extract ZIP in memory
+        files = []
+        tree_lines = []
+
+        with zipfile.ZipFile(io.BytesIO(zip_content)) as zf:
+            for info in zf.infolist():
+                # Skip directories
+                if info.is_dir():
+                    continue
+
+                # Get relative path (remove the top-level directory name)
+                parts = info.filename.split("/", 1)
+                if len(parts) < 2:
+                    continue
+                relative_path = parts[1]
+
+                # Skip empty paths
+                if not relative_path:
+                    continue
+
+                # Add to tree
+                tree_lines.append(relative_path)
+
+                # Skip files that are too large
+                if info.file_size > self.MAX_FILE_SIZE_KB * 1024:
+                    logger.debug(f"Skipping large file: {relative_path}")
+                    continue
+
+                # Skip binary files
+                if self._is_binary_file(relative_path):
+                    continue
+
+                # Read file content
+                try:
+                    content = zf.read(info.filename).decode("utf-8", errors="ignore")
+                except Exception as e:
+                    logger.debug(f"Skipping file {relative_path}: {e}")
+                    continue
+
+                # Estimate tokens (~4 chars per token)
+                estimated_tokens = len(content) // 4
+
+                # Split large files if needed
+                if estimated_tokens > self.MAX_TOKENS_PER_CHUNK:
+                    sub_chunks = self._split_large_file(relative_path, content)
+                    files.extend(sub_chunks)
+                else:
+                    files.append(
+                        FileChunk(
+                            file_path=relative_path,
+                            content=content,
+                            estimated_tokens=estimated_tokens,
+                        )
+                    )
+
+        # Build tree structure
+        tree_structure = self._build_tree_structure(tree_lines)
         total_tokens = sum(f.estimated_tokens for f in files)
+
+        # Build summary
+        summary = f"Repository: {owner}/{repo}\nFiles: {len(files)}\nTotal tokens: {total_tokens}"
+
+        logger.info(f"Parsed {len(files)} files, {total_tokens} tokens")
 
         return GitIngestResult(
             github_url=github_url,
             summary=summary,
-            tree_structure=tree,
+            tree_structure=tree_structure,
             files=files,
             total_tokens=total_tokens,
         )
+
+    def _parse_github_url(self, url: str) -> tuple[str, str]:
+        """Parse GitHub URL to extract owner and repo name."""
+        # Handle various GitHub URL formats
+        patterns = [
+            r"github\.com[/:]([^/]+)/([^/]+)",  # https or git@
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                owner = match.group(1)
+                repo = match.group(2)
+                # Remove .git suffix if present
+                if repo.endswith(".git"):
+                    repo = repo[:-4]
+                return owner, repo
+        return "", ""
+
+    def _is_binary_file(self, filename: str) -> bool:
+        """Check if file is likely binary based on extension."""
+        binary_extensions = {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".ico",
+            ".bmp",
+            ".webp",
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".xls",
+            ".xlsx",
+            ".ppt",
+            ".pptx",
+            ".zip",
+            ".tar",
+            ".gz",
+            ".rar",
+            ".7z",
+            ".exe",
+            ".dll",
+            ".so",
+            ".dylib",
+            ".pyc",
+            ".pyo",
+            ".class",
+            ".o",
+            ".a",
+            ".woff",
+            ".woff2",
+            ".ttf",
+            ".eot",
+            ".otf",
+            ".mp3",
+            ".mp4",
+            ".wav",
+            ".avi",
+            ".mov",
+            ".sqlite",
+            ".db",
+            ".bin",
+        }
+        return any(filename.lower().endswith(ext) for ext in binary_extensions)
+
+    def _build_tree_structure(self, file_paths: list[str]) -> str:
+        """Build a tree-like structure from file paths."""
+        # Sort paths for better readability
+        sorted_paths = sorted(file_paths)
+
+        # Simple tree representation
+        lines = ["```"]
+        for path in sorted_paths[:100]:  # Limit to first 100 files
+            depth = path.count("/")
+            indent = "  " * depth
+            name = path.split("/")[-1]
+            lines.append(f"{indent}{name}")
+
+        if len(sorted_paths) > 100:
+            lines.append(f"  ... and {len(sorted_paths) - 100} more files")
+
+        lines.append("```")
+        return "\n".join(lines)
 
     def _parse_files(self, content: str) -> List[FileChunk]:
         """
