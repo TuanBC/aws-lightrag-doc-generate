@@ -1,6 +1,6 @@
 # DocGen AI - Zero-Scale Technical Document Generator
 
-![Status](https://img.shields.io/badge/Status-POC-yellow?style=for-the-badge) ![AWS](https://img.shields.io/badge/AWS-Serverless-orange?style=for-the-badge&logo=amazon-aws&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-POC-yellow?style=for-the-badge) ![AWS](https://img.shields.io/badge/AWS-Serverless-orange?style=for-the-badge&logo=amazon-aws&logoColor=white) ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-blue?style=for-the-badge)
 
 **High-Quality Technical Documentation at Lowest Possible Cost**
 
@@ -259,4 +259,6 @@ Full serverless deployment using Terraform.
 
 ## 📝 License
 
-MIT
+This project is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/).
+
+See the [LICENSE](LICENSE) file for full details.
