@@ -31,7 +31,7 @@ openai>=2.8.1
 pandas>=2.3.3
 paramiko==4.0.0
 passlib==1.7.4
-platformdirs==4.4.0
+platformdirs==4.5.1
 pre_commit==4.3.0
 pycparser==2.23
 pycryptodome==3.23.0
