@@ -14,7 +14,7 @@ distlib==0.4.0
 docopt==0.6.2
 Exscript==2.6.32
 fastapi>=0.121.3
-filelock==3.19.1
+filelock==3.20.1
 future==1.0.0
 httpx>=0.28.1
 identify==2.6.15
